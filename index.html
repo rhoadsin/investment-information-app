@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>내 손안의 투자 - Toss Style</title>
+    <style>
+        /* 토스 스타일 폰트 및 기본 설정 */
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        
+        :root {
+            --toss-blue: #3182f6;
+            --toss-bg: #f2f4f6;
+            --toss-card: #ffffff;
+            --toss-text-main: #191f28;
+            --toss-text-sub: #4e5968;
+            --toss-border: #e5e8eb;
+        }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: var(--toss-bg);
+            margin: 0;
+            padding: 0;
+            color: var(--toss-text-main);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* 앱 헤더 */
+        .app-header {
+            background-color: var(--toss-bg);
+            padding: 20px 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .app-header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        /* 탭 메뉴 */
+        .tab-container {
+            display: flex;
+            padding: 0 24px;
+            margin-bottom: 20px;
+        }
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--toss-text-sub);
+            border-bottom: 2px solid var(--toss-border);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .tab.active {
+            color: var(--toss-text-main);
+            border-bottom: 2px solid var(--toss-text-main);
+        }
+
+        /* 메인 컨텐츠 영역 */
+        .content-section {
+            display: none;
+            padding: 0 24px;
+            padding-bottom: 40px;
+        }
+        .content-section.active {
+            display: block;
+        }
+
+        /* 카드 UI */
+        .card {
+            background-color: var(--toss-card);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        /* 관심 종목 입력 폼 */
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .input-group input {
+            flex: 1;
+            padding: 14px 16px;
+            border: none;
+            border-radius: 12px;
+            background-color: #f2f4f6;
+            font-size: 15px;
+            outline: none;
+        }
+        .input-group input:focus {
+            box-shadow: 0 0 0 2px var(--toss-blue) inset;
+        }
+        .input-group button {
+            background-color: var(--toss-blue);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0 20px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* 관심 종목 칩(버튼) */
+        .watchlist {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            white-space: nowrap;
+        }
+        .watchlist::-webkit-scrollbar { display: none; }
+        .chip {
+            background-color: #ffffff;
+            border: 1px solid var(--toss-border);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--toss-text-sub);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .chip.active {
+            background-color: var(--toss-blue);
+            color: white;
+            border-color: var(--toss-blue);
+        }
+        .chip-delete {
+            font-size: 12px;
+            opacity: 0.6;
+        }
+
+        /* 차트 컨테이너 */
+        #chart-container {
+            width: 100%;
+            height: 400px;
+            border-radius: 12px;
+            overflow: hidden;
+            background-color: #fff;
+        }
+
+        /* 뉴스 리스트 */
+        .news-item {
+            display: flex;
+            flex-direction: column;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--toss-border);
+        }
+        .news-item:last-child { border-bottom: none; }
+        .news-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--toss-text-main);
+            line-height: 1.4;
+        }
+        .news-meta {
+            font-size: 13px;
+            color: var(--toss-text-sub);
+        }
+    </style>
+</head>
+<body>
+
+    <header class="app-header">
+        <h1>내 투자</h1>
+    </header>
+
+    <div class="tab-container">
+        <div class="tab active" onclick="switchTab('chart')">차트 보기</div>
+        <div class="tab" onclick="switchTab('news')">관련 뉴스</div>
+    </div>
+
+    <div style="padding: 0 24px;">
+        <div class="input-group">
+            <input type="text" id="tickerInput" placeholder="종목코드 입력 (예: AAPL, SPY, 005930)">
+            <button onclick="addTicker()">추가</button>
+        </div>
+        <div class="watchlist" id="watchlistContainer">
+            </div>
+    </div>
+
+    <div id="chartSection" class="content-section active">
+        <div class="card" style="padding: 0;">
+            <div id="chart-container"></div>
+        </div>
+    </div>
+
+    <div id="newsSection" class="content-section">
+        <div class="card" id="newsContainer">
+            </div>
+    </div>
+
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script>
+        // 초기 데이터 (Local Storage 연동)
+        let watchlist = JSON.parse(localStorage.getItem('investment_watchlist')) || ['AAPL', 'SPY', '005930'];
+        let currentTicker = watchlist[0];
+
+        // 1. 탭 전환 로직
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.content-section').forEach(c => c.classList.remove('active'));
+            
+            if(tabName === 'chart') {
+                document.querySelectorAll('.tab')[0].classList.add('active');
+                document.getElementById('chartSection').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab')[1].classList.add('active');
+                document.getElementById('newsSection').classList.add('active');
+                loadNews(); // 뉴스 탭 진입 시 데이터 로드
+            }
+        }
+
+        // 2. 관심 종목 칩 렌더링
+        function renderWatchlist() {
+            const container = document.getElementById('watchlistContainer');
+            container.innerHTML = '';
+            
+            watchlist.forEach(ticker => {
+                const chip = document.createElement('div');
+                chip.className = `chip ${ticker === currentTicker ? 'active' : ''}`;
+                
+                const textSpan = document.createElement('span');
+                textSpan.innerText = ticker;
+                textSpan.onclick = () => selectTicker(ticker);
+                
+                const deleteSpan = document.createElement('span');
+                deleteSpan.className = 'chip-delete';
+                deleteSpan.innerText = '✕';
+                deleteSpan.onclick = (e) => {
+                    e.stopPropagation();
+                    removeTicker(ticker);
+                };
+
+                chip.appendChild(textSpan);
+                chip.appendChild(deleteSpan);
+                container.appendChild(chip);
+            });
+        }
+
+        // 3. 종목 추가/삭제/선택 로직
+        function addTicker() {
+            const input = document.getElementById('tickerInput');
+            const newTicker = input.value.trim().toUpperCase();
+            if (newTicker && !watchlist.includes(newTicker)) {
+                watchlist.push(newTicker);
+                saveAndRefresh(newTicker);
+                input.value = '';
+            }
+        }
+
+        function removeTicker(ticker) {
+            watchlist = watchlist.filter(t => t !== ticker);
+            if(watchlist.length > 0 && currentTicker === ticker) {
+                currentTicker = watchlist[0];
+            }
+            saveAndRefresh(currentTicker);
+        }
+
+        function selectTicker(ticker) {
+            currentTicker = ticker;
+            saveAndRefresh(ticker);
+        }
+
+        function saveAndRefresh(ticker) {
+            localStorage.setItem('investment_watchlist', JSON.stringify(watchlist));
+            renderWatchlist();
+            loadChart(ticker);
+            loadNews();
+        }
+
+        // 4. 차트 로드 로직 (TradingView API 활용)
+        function loadChart(ticker) {
+            // 한국 주식(숫자 6자리)일 경우 거래소를 KRX로 지정, 아니면 기본값 사용
+            let symbol = ticker;
+            if (/^\d{6}$/.test(ticker)) {
+                symbol = `KRX:${ticker}`;
+            }
+
+            document.getElementById('chart-container').innerHTML = ''; // 기존 차트 초기화
+            new TradingView.widget({
+                "autosize": true,
+                "symbol": symbol,
+                "interval": "D",
+                "timezone": "Asia/Seoul",
+                "theme": "light",
+                "style": "2", // 라인 차트 (토스 스타일)
+                "locale": "kr",
+                "enable_publishing": false,
+                "hide_top_toolbar": true,
+                "hide_legend": false,
+                "save_image": false,
+                "container_id": "chart-container"
+            });
+        }
+
+        // 5. 뉴스 로드 로직 (컨설턴트 제안: 현재는 Mock Data, 추후 실제 API 교체 필요)
+        function loadNews() {
+            const container = document.getElementById('newsContainer');
+            container.innerHTML = `<div style="color:var(--toss-text-sub); text-align:center; padding: 20px;">${currentTicker} 관련 뉴스를 불러오는 중...</div>`;
+            
+            // 실제 서비스에서는 아래 부분에 네이버 뉴스 API 또는 NewsAPI fetch 로직이 들어갑니다.
+            setTimeout(() => {
+                const mockNews = [
+                    { title: `[속보] ${currentTicker}, 월가 예상치 상회하는 실적 발표`, time: '1시간 전', source: '글로벌경제' },
+                    { title: `지금 ${currentTicker}를 주목해야 하는 3가지 이유`, time: '3시간 전', source: '투자일보' },
+                    { title: `기관 투자자들, ${currentTicker} 비중 확대 나서`, time: '5시간 전', source: '파이낸셜뉴스' },
+                    { title: `${currentTicker} ETF 자금 유입 역대 최고치 경신`, time: '1일 전', source: '증권마스터' }
+                ];
+
+                container.innerHTML = '';
+                mockNews.forEach(news => {
+                    container.innerHTML += `
+                        <div class="news-item">
+                            <div class="news-title">${news.title}</div>
+                            <div class="news-meta">${news.source} · ${news.time}</div>
+                        </div>
+                    `;
+                });
+            }, 500); // 0.5초 딜레이로 API 로딩 효과 부여
+        }
+
+        // 초기화 실행
+        renderWatchlist();
+        loadChart(currentTicker);
+    </script>
+</body>
+</html>
