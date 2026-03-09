@@ -29,7 +29,7 @@
         .chart-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-bottom: 30px; }
         .chart-card { background: var(--toss-card); border-radius: 16px; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
         .chart-header { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; }
-        .ticker-name { font-weight: 700; font-size: 15px; }
+        .ticker-name { font-weight: 700; font-size: 15px; display: flex; align-items: center; }
         .delete-btn { color: #ccc; cursor: pointer; border: none; background: none; font-size: 18px; }
         .tv-widget { height: 250px; border-radius: 8px; overflow: hidden; background: #f9fafb; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #999;}
 
@@ -59,9 +59,15 @@
         }
         .search-item { padding: 14px 16px; border-bottom: 1px solid #f2f4f6; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
         .search-item:hover { background: #f9fafb; }
-        .search-name { font-weight: 600; font-size: 15px; color: var(--toss-text-main); }
+        .search-name { font-weight: 600; font-size: 15px; color: var(--toss-text-main); display: flex; align-items: center; }
         .search-symbol { color: var(--toss-blue); font-weight: 700; font-size: 13px; }
         .search-exch { font-size: 11px; color: #999; margin-left: 8px; }
+        
+        /* ETF 뱃지 스타일 */
+        .badge-etf {
+            background-color: #e8f3ff; color: var(--toss-blue); padding: 2px 6px; 
+            border-radius: 4px; font-size: 10px; font-weight: 700; margin-left: 6px;
+        }
     </style>
 </head>
 <body>
@@ -76,7 +82,7 @@
     <main class="container">
         <div class="section-title">
             <span id="currentSectorName">관심 종목</span>
-            <button onclick="openAddTickerModal()" style="font-size: 14px; color: var(--toss-blue); border:none; background:none; font-weight:700; cursor:pointer;">+ 종목추가</button>
+            <button onclick="openAddTickerModal()" style="font-size: 14px; color: var(--toss-blue); border:none; background:none; font-weight:700; cursor:pointer;">+ 종목/ETF 추가</button>
         </div>
         <div class="chart-grid" id="chartGrid"></div>
 
@@ -93,7 +99,7 @@
             <h3 style="margin-top:0;">섹터 관리</h3>
             <div id="sectorListAdmin"></div>
             <hr style="border:0; height:1px; background:var(--toss-border); margin: 16px 0;">
-            <input type="text" id="newSectorName" class="input-field" placeholder="새 섹터 이름 (예: 반도체)">
+            <input type="text" id="newSectorName" class="input-field" placeholder="새 섹터 이름 (예: 반도체, ETF모음)">
             <button onclick="addSector()" class="fab" style="width:100%; margin-top:10px; background:var(--toss-blue);">섹터 추가</button>
             <button onclick="closeModal('sectorModal')" style="width:100%; border:none; background:none; margin-top:15px; font-weight:600; color:var(--toss-text-sub); cursor:pointer;">닫기</button>
         </div>
@@ -101,11 +107,11 @@
 
     <div id="tickerModal" class="modal">
         <div class="modal-content">
-            <h3 style="margin-top:0;">종목 검색 및 추가</h3>
+            <h3 style="margin-top:0;">종목 및 ETF 검색</h3>
             <p id="targetSectorHint" style="font-size: 13px; color: var(--toss-blue); margin-bottom:15px;"></p>
             
             <div style="position: relative;">
-                <input type="text" id="tickerSearchInput" class="input-field" placeholder="기업명 검색 (예: 삼성, 애플, 테슬라)" autocomplete="off">
+                <input type="text" id="tickerSearchInput" class="input-field" placeholder="기업명 또는 ETF 검색 (예: 삼성, SPY, 나스닥)" autocomplete="off">
                 <div id="searchResults" class="search-results"></div>
             </div>
 
@@ -119,37 +125,51 @@
         const defaultData = {
             "생성형AI": ["MSFT", "GOOGL", "NVDA", "ADBE"],
             "에이전틱AI": ["AMZN", "META", "CRM", "PLTR"],
-            "피지컬AI": ["TSLA", "005930", "ASML", "005380"] // 005380: 현대차
+            "피지컬AI": ["TSLA", "005930", "ASML", "005380"],
+            "시장지수(ETF)": ["SPY", "QQQ", "069500", "133690"] // ETF 섹터 기본 추가
         };
 
-        // 2. 내부 주식 사전 (검색 100% 작동 보장용 DB)
+        // 2. 내부 주식 및 ETF 사전 (t: 타입 추가)
         const masterStockDB = [
-            {n: "삼성전자", s: "005930", e: "KOSPI"}, {n: "SK하이닉스", s: "000660", e: "KOSPI"},
-            {n: "현대차", s: "005380", e: "KOSPI"}, {n: "기아", s: "000270", e: "KOSPI"},
-            {n: "NAVER (네이버)", s: "035420", e: "KOSPI"}, {n: "카카오", s: "035720", e: "KOSPI"},
-            {n: "LG에너지솔루션", s: "373220", e: "KOSPI"}, {n: "삼성바이오로직스", s: "207940", e: "KOSPI"},
-            {n: "Apple (애플)", s: "AAPL", e: "NASDAQ"}, {n: "Tesla (테슬라)", s: "TSLA", e: "NASDAQ"},
-            {n: "NVIDIA (엔비디아)", s: "NVDA", e: "NASDAQ"}, {n: "Microsoft (마이크로소프트)", s: "MSFT", e: "NASDAQ"},
-            {n: "Alphabet (구글)", s: "GOOGL", e: "NASDAQ"}, {n: "Amazon (아마존)", s: "AMZN", e: "NASDAQ"},
-            {n: "Meta (메타, 페이스북)", s: "META", e: "NASDAQ"}, {n: "Netflix (넷플릭스)", s: "NFLX", e: "NASDAQ"},
-            {n: "AMD", s: "AMD", e: "NASDAQ"}, {n: "Intel (인텔)", s: "INTC", e: "NASDAQ"},
-            {n: "ASML", s: "ASML", e: "NASDAQ"}, {n: "TSMC", s: "TSM", e: "NYSE"},
-            {n: "Salesforce (세일즈포스)", s: "CRM", e: "NYSE"}, {n: "Palantir (팔란티어)", s: "PLTR", e: "NYSE"},
-            {n: "Adobe (어도비)", s: "ADBE", e: "NASDAQ"}, {n: "SPY (S&P 500 ETF)", s: "SPY", e: "NYSE"},
-            {n: "QQQ (나스닥 ETF)", s: "QQQ", e: "NASDAQ"}
+            // --- 한국 개별 주식 ---
+            {n: "삼성전자", s: "005930", e: "KOSPI", t: "STOCK"}, {n: "SK하이닉스", s: "000660", e: "KOSPI", t: "STOCK"},
+            {n: "현대차", s: "005380", e: "KOSPI", t: "STOCK"}, {n: "기아", s: "000270", e: "KOSPI", t: "STOCK"},
+            {n: "NAVER (네이버)", s: "035420", e: "KOSPI", t: "STOCK"}, {n: "카카오", s: "035720", e: "KOSPI", t: "STOCK"},
+            {n: "LG에너지솔루션", s: "373220", e: "KOSPI", t: "STOCK"}, {n: "삼성바이오로직스", s: "207940", e: "KOSPI", t: "STOCK"},
+            
+            // --- 미국 개별 주식 ---
+            {n: "Apple (애플)", s: "AAPL", e: "NASDAQ", t: "STOCK"}, {n: "Tesla (테슬라)", s: "TSLA", e: "NASDAQ", t: "STOCK"},
+            {n: "NVIDIA (엔비디아)", s: "NVDA", e: "NASDAQ", t: "STOCK"}, {n: "Microsoft (마이크로소프트)", s: "MSFT", e: "NASDAQ", t: "STOCK"},
+            {n: "Alphabet (구글)", s: "GOOGL", e: "NASDAQ", t: "STOCK"}, {n: "Amazon (아마존)", s: "AMZN", e: "NASDAQ", t: "STOCK"},
+            {n: "Meta (메타, 페이스북)", s: "META", e: "NASDAQ", t: "STOCK"}, {n: "Netflix (넷플릭스)", s: "NFLX", e: "NASDAQ", t: "STOCK"},
+            {n: "AMD", s: "AMD", e: "NASDAQ", t: "STOCK"}, {n: "Intel (인텔)", s: "INTC", e: "NASDAQ", t: "STOCK"},
+            {n: "ASML", s: "ASML", e: "NASDAQ", t: "STOCK"}, {n: "TSMC", s: "TSM", e: "NYSE", t: "STOCK"},
+            {n: "Salesforce (세일즈포스)", s: "CRM", e: "NYSE", t: "STOCK"}, {n: "Palantir (팔란티어)", s: "PLTR", e: "NYSE", t: "STOCK"},
+            {n: "Adobe (어도비)", s: "ADBE", e: "NASDAQ", t: "STOCK"},
+            
+            // --- 미국 대표 ETF ---
+            {n: "SPY (S&P 500)", s: "SPY", e: "NYSE ARCA", t: "ETF"}, {n: "QQQ (나스닥 100)", s: "QQQ", e: "NASDAQ", t: "ETF"},
+            {n: "SCHD (미국 배당 다우존스)", s: "SCHD", e: "NYSE ARCA", t: "ETF"}, {n: "VOO (S&P 500)", s: "VOO", e: "NYSE ARCA", t: "ETF"},
+            {n: "SOXX (필라델피아 반도체)", s: "SOXX", e: "NASDAQ", t: "ETF"}, {n: "TQQQ (나스닥 3배 레버리지)", s: "TQQQ", e: "NASDAQ", t: "ETF"},
+            {n: "SQQQ (나스닥 3배 인버스)", s: "SQQQ", e: "NASDAQ", t: "ETF"}, {n: "JEPI (프리미엄 인컴)", s: "JEPI", e: "NYSE ARCA", t: "ETF"},
+            {n: "ARKK (혁신기업)", s: "ARKK", e: "NYSE ARCA", t: "ETF"},
+
+            // --- 한국 대표 ETF ---
+            {n: "KODEX 200", s: "069500", e: "KRX", t: "ETF"}, {n: "TIGER 미국나스닥100", s: "133690", e: "KRX", t: "ETF"},
+            {n: "TIGER 미국S&P500", s: "360200", e: "KRX", t: "ETF"}, {n: "KODEX 레버리지", s: "122630", e: "KRX", t: "ETF"},
+            {n: "KODEX 인버스", s: "114800", e: "KRX", t: "ETF"}, {n: "TIGER 차이나전기차SOLACTIVE", s: "371460", e: "KRX", t: "ETF"},
+            {n: "KODEX 2차전지산업", s: "305720", e: "KRX", t: "ETF"}, {n: "TIGER 미국필라델피아반도체나스닥", s: "381180", e: "KRX", t: "ETF"}
         ];
 
         let data = JSON.parse(localStorage.getItem('gem_invest_data')) || defaultData;
         let currentSector = Object.keys(data)[0] || "생성형AI";
 
-        // 초기화 함수
         function init() {
             renderSectorNav();
             renderContent();
             checkNewsRefresh();
         }
 
-        // 네비게이션 렌더링
         function renderSectorNav() {
             const nav = document.getElementById('sectorNav');
             nav.innerHTML = '';
@@ -162,7 +182,6 @@
             });
         }
 
-        // 컨텐츠 렌더링
         function renderContent() {
             if(!currentSector) return;
             document.getElementById('currentSectorName').innerText = `${currentSector} 차트`;
@@ -170,7 +189,6 @@
             loadNews();
         }
 
-        // 차트 렌더링 (TradingView)
         function renderCharts() {
             const grid = document.getElementById('chartGrid');
             grid.innerHTML = '';
@@ -184,20 +202,24 @@
                 const card = document.createElement('div');
                 card.className = 'chart-card';
                 
-                // 한국 주식 6자리 숫자 처리
+                // 한국 주식/ETF 6자리 숫자 처리
                 const symbol = /^\d{6}$/.test(ticker) ? `KRX:${ticker}` : ticker;
                 const widgetId = `tv_${ticker}_${Math.random().toString(36).substr(2, 9)}`;
 
+                // 표시할 이름 찾기 (DB에 있으면 이름 표시, 없으면 티커 표시)
+                const stockInfo = masterStockDB.find(s => s.s === ticker);
+                const displayName = stockInfo ? stockInfo.n.split(' (')[0] : ticker;
+                const badgeHtml = stockInfo && stockInfo.t === 'ETF' ? `<span class="badge-etf">ETF</span>` : '';
+
                 card.innerHTML = `
                     <div class="chart-header">
-                        <span class="ticker-name">${ticker}</span>
+                        <span class="ticker-name">${displayName} ${badgeHtml}</span>
                         <button class="delete-btn" onclick="removeTicker('${ticker}')">✕</button>
                     </div>
                     <div id="${widgetId}" class="tv-widget">차트 로딩중...</div>
                 `;
                 grid.appendChild(card);
 
-                // 트레이딩뷰 위젯 생성
                 if (typeof TradingView !== 'undefined') {
                     new TradingView.widget({
                         "autosize": true, "symbol": symbol, "interval": "D", "timezone": "Asia/Seoul",
@@ -208,7 +230,7 @@
             });
         }
 
-        // --- 핵심: 완벽하게 작동하는 실시간 검색 로직 ---
+        // --- 검색 로직 (ETF 뱃지 지원) ---
         document.getElementById('tickerSearchInput').addEventListener('input', function(e) {
             const query = e.target.value.trim().toLowerCase();
             const resultsContainer = document.getElementById('searchResults');
@@ -218,7 +240,6 @@
                 return;
             }
 
-            // 내장된 DB에서 이름이나 심볼로 검색
             const matchedStocks = masterStockDB.filter(stock => 
                 stock.n.toLowerCase().includes(query) || 
                 stock.s.toLowerCase().includes(query)
@@ -229,17 +250,18 @@
                 matchedStocks.forEach(item => {
                     const div = document.createElement('div');
                     div.className = 'search-item';
+                    
+                    // ETF인 경우 뱃지 추가
+                    const badge = item.t === 'ETF' ? `<span class="badge-etf">ETF</span>` : '';
+
                     div.innerHTML = `
                         <div>
-                            <span class="search-name">${item.n}</span>
+                            <span class="search-name">${item.n} ${badge}</span>
                             <span class="search-exch">${item.e}</span>
                         </div>
                         <span class="search-symbol">${item.s}</span>
                     `;
-                    // 클릭 시 종목 추가
-                    div.onclick = () => {
-                        addSymbolToSector(item.s);
-                    };
+                    div.onclick = () => { addSymbolToSector(item.s); };
                     resultsContainer.appendChild(div);
                 });
                 resultsContainer.style.display = 'block';
@@ -249,7 +271,6 @@
             }
         });
 
-        // 종목 추가 확정
         function addSymbolToSector(symbol) {
             if (!data[currentSector].includes(symbol)) {
                 data[currentSector].push(symbol);
@@ -267,9 +288,8 @@
             renderContent();
         }
 
-        // 관리 도구 (모달 제어)
         function openAddTickerModal() {
-            document.getElementById('targetSectorHint').innerText = `[${currentSector}] 섹터에 종목을 추가합니다.`;
+            document.getElementById('targetSectorHint').innerText = `[${currentSector}] 섹터에 추가합니다.`;
             document.getElementById('tickerSearchInput').value = '';
             document.getElementById('searchResults').style.display = 'none';
             document.getElementById('tickerModal').style.display = 'flex';
@@ -321,7 +341,6 @@
 
         function saveData() { localStorage.setItem('gem_invest_data', JSON.stringify(data)); }
 
-        // 뉴스 업데이트 표시
         function checkNewsRefresh() {
             const now = new Date();
             const hour = now.getHours();
@@ -342,7 +361,7 @@
             setTimeout(() => {
                 container.innerHTML = '';
                 const mockNews = [
-                    { title: `[특징주] ${currentSector} 관련주 장중 강세 흐름`, source: 'GEM 파이낸스', time: '1시간 전' },
+                    { title: `[특징주] ${currentSector} 관련주 및 ETF 장중 강세 흐름`, source: 'GEM 파이낸스', time: '1시간 전' },
                     { title: `월가 "올해 핵심 키워드는 단연 ${currentSector}"`, source: '글로벌경제', time: '3시간 전' },
                     { title: `${currentSector} ETF 자금 순유입 3주 연속 1위`, source: '투자동향', time: '오전 8:00' }
                 ];
