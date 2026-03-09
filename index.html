@@ -1,303 +1,120 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>투자조언 GEM - AI 섹터 대시보드</title>
-    <style>
-        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+<style>
+    /* ... 이전 스타일 유지 ... */
+    
+    /* 검색 결과 드롭다운 스타일 */
+    .search-results {
+        position: absolute;
+        width: calc(100% - 48px);
+        max-height: 200px;
+        overflow-y: auto;
+        background: white;
+        border: 1px solid var(--toss-border);
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        z-index: 3000;
+        display: none; /* 기본값은 숨김 */
+    }
+    .search-item {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--toss-border);
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .search-item:hover { background-color: #f9fafb; }
+    .search-item .symbol { font-weight: 700; color: var(--toss-blue); }
+    .search-item .name { font-size: 14px; color: var(--toss-text-main); }
+    .search-item .exch { font-size: 11px; color: #999; margin-left: 8px; }
+</style>
+
+<div id="tickerModal" class="modal">
+    <div class="modal-content" style="position: relative;">
+        <h3>종목 추가</h3>
+        <p id="targetSectorHint" style="font-size: 13px; color: var(--toss-blue); margin-bottom: 15px;"></p>
         
-        :root {
-            --toss-blue: #3182f6;
-            --toss-bg: #f2f4f6;
-            --toss-card: #ffffff;
-            --toss-text-main: #191f28;
-            --toss-text-sub: #4e5968;
-            --toss-border: #e5e8eb;
-            --toss-red: #f04452;
+        <div style="position: relative;">
+            <input type="text" id="tickerSearchInput" class="input-field" 
+                   placeholder="기업명 또는 종목코드 입력 (예: 삼성전자, Apple)" 
+                   oninput="searchSymbols(this.value)" autocomplete="off">
+            <div id="searchResults" class="search-results"></div>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <button onclick="closeModal('tickerModal')" style="width:100%; border:none; background:none; color:var(--toss-text-sub);">닫기</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* ... 이전 스크립트 변수들 유지 ... */
+
+    // 1. 종목 검색 함수 (TradingView의 심볼 검색 API 활용 - 무료/공개용)
+    async function searchSymbols(query) {
+        const resultsContainer = document.getElementById('searchResults');
+        if (!query || query.length < 2) {
+            resultsContainer.style.display = 'none';
+            return;
         }
 
-        body {
-            font-family: 'Pretendard', sans-serif;
-            background-color: var(--toss-bg);
-            margin: 0; padding: 0;
-            color: var(--toss-text-main);
-            padding-bottom: 80px;
+        try {
+            // TradingView 공식 검색 엔드포인트 활용
+            const response = await fetch(`https://symbol-search.tradingview.com/symbol_search/?text=${encodeURIComponent(query)}&type=stock`);
+            const data = await response.json();
+
+            if (data && data.length > 0) {
+                renderSearchResults(data);
+            } else {
+                resultsContainer.style.display = 'none';
+            }
+        } catch (error) {
+            console.error("검색 에러:", error);
+        }
+    }
+
+    // 2. 검색 결과 렌더링
+    function renderSearchResults(results) {
+        const container = document.getElementById('searchResults');
+        container.innerHTML = '';
+        container.style.display = 'block';
+
+        // 최대 10개까지만 표시
+        results.slice(0, 10).forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'search-item';
+            
+            // 한국 종목과 미국 종목 표기 최적화
+            const exchange = item.exchange;
+            const symbol = item.symbol;
+            const description = item.description;
+
+            div.innerHTML = `
+                <div>
+                    <span class="name">${description}</span>
+                    <span class="exch">${exchange}</span>
+                </div>
+                <span class="symbol">${symbol}</span>
+            `;
+
+            div.onclick = () => selectSymbol(symbol, description);
+            container.appendChild(div);
+        });
+    }
+
+    // 3. 종목 선택 시 확정 로직
+    function selectSymbol(symbol, name) {
+        // 중복 체크
+        if (data[currentSector].includes(symbol)) {
+            alert('이미 추가된 종목입니다.');
+            return;
         }
 
-        /* 헤더 & 섹터 탭 */
-        .app-header { padding: 24px 24px 10px 24px; background: var(--toss-bg); }
-        .app-header h1 { font-size: 22px; margin: 0 0 16px 0; }
-
-        .sector-nav {
-            display: flex; gap: 12px; overflow-x: auto; padding: 0 24px 15px 24px;
-            scrollbar-width: none;
-        }
-        .sector-nav::-webkit-scrollbar { display: none; }
+        // 데이터 추가
+        data[currentSector].push(symbol);
+        saveData();
         
-        .sector-tab {
-            padding: 10px 18px; background: #fff; border-radius: 20px;
-            font-size: 14px; font-weight: 600; color: var(--toss-text-sub);
-            cursor: pointer; white-space: nowrap; border: 1px solid var(--toss-border);
-        }
-        .sector-tab.active {
-            background: var(--toss-blue); color: #fff; border-color: var(--toss-blue);
-        }
-
-        /* 메인 컨텐츠 */
-        .container { padding: 0 20px; }
-        .section-title { font-size: 18px; font-weight: 700; margin: 20px 0 12px 4px; display: flex; justify-content: space-between; align-items: center; }
-
-        /* 차트 그리드 레이아웃 */
-        .chart-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 16px; margin-bottom: 30px;
-        }
-        .chart-card {
-            background: var(--toss-card); border-radius: 16px; padding: 16px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.03); position: relative;
-        }
-        .chart-header { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; }
-        .ticker-name { font-weight: 700; font-size: 15px; }
-        .delete-btn { color: #ccc; cursor: pointer; border: none; background: none; font-size: 18px; }
-
-        .tv-widget { height: 250px; border-radius: 8px; overflow: hidden; }
-
-        /* 뉴스 섹션 */
-        .news-card { background: var(--toss-card); border-radius: 16px; padding: 20px; }
-        .news-item { padding: 14px 0; border-bottom: 1px solid var(--toss-border); cursor: pointer; }
-        .news-item:last-child { border-bottom: none; }
-        .news-tag { font-size: 11px; color: var(--toss-blue); font-weight: 700; margin-bottom: 4px; }
-        .news-title { font-size: 15px; font-weight: 600; line-height: 1.4; }
-        .news-info { font-size: 12px; color: var(--toss-text-sub); margin-top: 6px; }
-
-        /* 관리 모달/버튼 */
-        .admin-bar {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 10px; z-index: 1000;
-        }
-        .fab {
-            background: var(--toss-text-main); color: #fff; padding: 12px 20px;
-            border-radius: 30px; font-size: 14px; font-weight: 600; border: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer;
-        }
-
-        /* 팝업 오버레이 */
-        .modal {
-            display: none; position: fixed; top:0; left:0; width:100%; height:100%;
-            background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;
-        }
-        .modal-content { background: #fff; padding: 24px; border-radius: 20px; width: 85%; max-width: 400px; }
-        .input-field { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid var(--toss-border); border-radius: 8px; box-sizing: border-box; }
-    </style>
-</head>
-<body>
-
-    <header class="app-header">
-        <h1>투자조언 GEM 대시보드</h1>
-        <div id="refresh-time" style="font-size: 12px; color: var(--toss-text-sub); margin-bottom: 10px;">업데이트: 확인 중...</div>
-    </header>
-
-    <nav class="sector-nav" id="sectorNav"></nav>
-
-    <main class="container">
-        <div class="section-title">
-            <span id="currentSectorName">관심 종목</span>
-            <button onclick="openAddTickerModal()" style="font-size: 13px; color: var(--toss-blue); border:none; background:none; font-weight:600;">+ 종목추가</button>
-        </div>
-        <div class="chart-grid" id="chartGrid"></div>
-
-        <div class="section-title">주요 뉴스</div>
-        <div class="news-card" id="newsContainer"></div>
-    </main>
-
-    <div class="admin-bar">
-        <button class="fab" onclick="openSectorModal()">📁 섹터 관리</button>
-    </div>
-
-    <div id="sectorModal" class="modal">
-        <div class="modal-content">
-            <h3>관심분야(섹터) 관리</h3>
-            <div id="sectorListAdmin"></div>
-            <hr>
-            <input type="text" id="newSectorName" class="input-field" placeholder="새 섹터 이름">
-            <button onclick="addSector()" class="fab" style="width:100%; margin-top:10px;">섹터 추가</button>
-            <button onclick="closeModal('sectorModal')" style="width:100%; border:none; background:none; margin-top:15px; color:var(--toss-text-sub);">닫기</button>
-        </div>
-    </div>
-
-    <div id="tickerModal" class="modal">
-        <div class="modal-content">
-            <h3>종목 추가</h3>
-            <p id="targetSectorHint" style="font-size: 13px; color: var(--toss-blue);"></p>
-            <input type="text" id="newTickerSymbol" class="input-field" placeholder="종목코드 (예: TSLA, NVDA, 005930)">
-            <button onclick="addTicker()" class="fab" style="width:100%; margin-top:10px;">종목 추가</button>
-            <button onclick="closeModal('tickerModal')" style="width:100%; border:none; background:none; margin-top:15px; color:var(--toss-text-sub);">닫기</button>
-        </div>
-    </div>
-
-    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-    <script>
-        // 초기 데이터 세팅 (투자조언 GEM 기반)
-        const defaultData = {
-            "생성형AI": ["MSFT", "GOOGL", "NVDA", "ADBE"],
-            "에이전틱AI": ["AMZN", "META", "CRM", "PLTR"],
-            "피지컬AI": ["TSLA", "005930", "ASML", "HyundaiMotor"]
-        };
-
-        let data = JSON.parse(localStorage.getItem('gem_invest_data')) || defaultData;
-        let currentSector = Object.keys(data)[0];
-
-        // 1. 초기 렌더링
-        function init() {
-            renderSectorNav();
-            renderContent();
-            checkNewsRefresh();
-        }
-
-        function renderSectorNav() {
-            const nav = document.getElementById('sectorNav');
-            nav.innerHTML = '';
-            Object.keys(data).forEach(sector => {
-                const btn = document.createElement('div');
-                btn.className = `sector-tab ${sector === currentSector ? 'active' : ''}`;
-                btn.innerText = sector;
-                btn.onclick = () => { currentSector = sector; renderSectorNav(); renderContent(); };
-                nav.appendChild(btn);
-            });
-        }
-
-        function renderContent() {
-            document.getElementById('currentSectorName').innerText = `${currentSector} 차트`;
-            renderCharts();
-            loadNews();
-        }
-
-        // 2. 차트 렌더링 (TradingView)
-        function renderCharts() {
-            const grid = document.getElementById('chartGrid');
-            grid.innerHTML = '';
-            
-            data[currentSector].forEach(ticker => {
-                const card = document.createElement('div');
-                card.className = 'chart-card';
-                
-                const symbol = /^\d{6}$/.test(ticker) ? `KRX:${ticker}` : ticker;
-                const widgetId = `tv_${ticker}_${Math.random().toString(36).substr(2, 9)}`;
-
-                card.innerHTML = `
-                    <div class="chart-header">
-                        <span class="ticker-name">${ticker}</span>
-                        <button class="delete-btn" onclick="removeTicker('${ticker}')">✕</button>
-                    </div>
-                    <div id="${widgetId}" class="tv-widget"></div>
-                `;
-                grid.appendChild(card);
-
-                new TradingView.widget({
-                    "autosize": true, "symbol": symbol, "interval": "D", "timezone": "Asia/Seoul",
-                    "theme": "light", "style": "2", "locale": "kr", "container_id": widgetId,
-                    "hide_top_toolbar": true, "hide_legend": true, "save_image": false
-                });
-            });
-        }
-
-        // 3. 뉴스 로직 (Refresh 시간 반영)
-        function checkNewsRefresh() {
-            const now = new Date();
-            const hour = now.getHours();
-            const refreshDisplay = document.getElementById('refresh-time');
-            
-            let status = "최신 상태 (오전 8시/오후 5시 자동 리프레시)";
-            if (hour >= 8 && hour < 17) status = "오전 8시 데이터 업데이트 완료";
-            if (hour >= 17 || hour < 8) status = "오후 5시 데이터 업데이트 완료";
-            
-            refreshDisplay.innerText = `업데이트: ${status} | 현재 시간 ${now.getHours()}:${now.getMinutes()}`;
-        }
-
-        function loadNews() {
-            const container = document.getElementById('newsContainer');
-            container.innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;">분야별 뉴스를 분석 중입니다...</div>';
-            
-            setTimeout(() => {
-                container.innerHTML = '';
-                const mockNews = [
-                    { title: `${currentSector} 산업 전반에 걸친 글로벌 자금 유입 가속화`, source: 'GEM Insight', time: '2시간 전' },
-                    { title: `${data[currentSector][0] || '관련기업'}, 내 분기 가이던스 상향 조정 발표`, source: '경제뉴스', time: '4시간 전' },
-                    { title: `전문가들이 말하는 ${currentSector} 투자 시 주의점`, source: '투자전략', time: '오전 8:00' }
-                ];
-                mockNews.forEach(news => {
-                    container.innerHTML += `
-                        <div class="news-item">
-                            <div class="news-tag">#${currentSector}</div>
-                            <div class="news-title">${news.title}</div>
-                            <div class="news-info">${news.source} · ${news.time}</div>
-                        </div>
-                    `;
-                });
-            }, 600);
-        }
-
-        // 4. 관리 기능 (섹터/종목 추가 삭제)
-        function openSectorModal() {
-            const list = document.getElementById('sectorListAdmin');
-            list.innerHTML = '';
-            Object.keys(data).forEach(s => {
-                list.innerHTML += `<div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #eee;">
-                    <span>${s}</span>
-                    <button onclick="deleteSector('${s}')" style="color:var(--toss-red); border:none; background:none;">삭제</button>
-                </div>`;
-            });
-            document.getElementById('sectorModal').style.display = 'flex';
-        }
-
-        function addSector() {
-            const name = document.getElementById('newSectorName').value.trim();
-            if (name && !data[name]) {
-                data[name] = [];
-                saveData();
-                renderSectorNav();
-                closeModal('sectorModal');
-            }
-        }
-
-        function deleteSector(s) {
-            if(confirm(`'${s}' 섹터를 삭제할까요?`)) {
-                delete data[s];
-                currentSector = Object.keys(data)[0];
-                saveData();
-                renderSectorNav();
-                openSectorModal();
-                renderContent();
-            }
-        }
-
-        function openAddTickerModal() {
-            document.getElementById('targetSectorHint').innerText = `${currentSector} 섹터에 추가합니다.`;
-            document.getElementById('tickerModal').style.display = 'flex';
-        }
-
-        function addTicker() {
-            const ticker = document.getElementById('newTickerSymbol').value.trim().toUpperCase();
-            if (ticker) {
-                data[currentSector].push(ticker);
-                saveData();
-                renderContent();
-                closeModal('tickerModal');
-                document.getElementById('newTickerSymbol').value = '';
-            }
-        }
-
-        function removeTicker(ticker) {
-            data[currentSector] = data[currentSector].filter(t => t !== ticker);
-            saveData();
-            renderContent();
-        }
-
-        function saveData() { localStorage.setItem('gem_invest_data', JSON.stringify(data)); }
-        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-
-        window.onload = init;
-    </script>
-</body>
-</html>
+        // UI 리프레시
+        renderContent();
+        
+        // 검색창 초기화 및 닫기
+        document.getElementById('tickerSearchInput').value = '';
