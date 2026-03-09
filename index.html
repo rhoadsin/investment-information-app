@@ -34,10 +34,8 @@
         .delete-btn { color: #999; cursor: pointer; border: none; background: none; font-size: 14px; font-weight: 600; transition: color 0.2s;}
         .delete-btn:hover { color: #f04452; }
         
-        /* 글로벌 차트용 (TradingView) */
         .tv-widget { height: 350px; border-radius: 8px; overflow: hidden; background: #f9fafb; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #999;}
         
-        /* 국내 차트용 (Naver) 버튼 스타일 */
         .krx-btn { background: #f2f4f6; border: 1px solid transparent; border-radius: 6px; padding: 6px 12px; font-size: 13px; font-weight: 600; color: var(--toss-text-sub); cursor: pointer; transition: 0.2s; }
         .krx-btn:hover { background: #e5e8eb; }
         .krx-btn.active { background: var(--toss-blue); color: #fff; }
@@ -67,17 +65,21 @@
         .badge-etf { background-color: #e8f3ff; color: var(--toss-blue); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; margin-left: 8px; }
         .badge-lme { background-color: #fce4e4; color: var(--toss-red); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; margin-left: 8px; }
         .badge-gold { background-color: #fff4e6; color: #f5a623; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; margin-left: 8px; }
-        .badge-ver { font-size: 12px; background: var(--toss-text-main); color: #fff; padding: 4px 8px; border-radius: 6px; font-weight: 600; }
+        .badge-ver { font-size: 12px; background: var(--toss-blue); color: #fff; padding: 4px 8px; border-radius: 6px; font-weight: 600; }
         
         .move-btn { border: 1px solid #e5e8eb; background: #fff; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; color: #666; transition: 0.2s;}
         .move-btn:hover { background: #f2f4f6; color: #111; }
+        
+        /* 모달 X 닫기 버튼 공통 스타일 */
+        .modal-close-btn { background: none; border: none; font-size: 24px; color: #999; cursor: pointer; line-height: 1; padding: 0; transition: color 0.2s; }
+        .modal-close-btn:hover { color: #333; }
     </style>
 </head>
 <body>
 
 <div class="app-wrapper">
     <header class="app-header">
-        <h1>내 손안의 투자 <span class="badge-ver">PC v8.0 (국내차트 완벽지원)</span></h1>
+        <h1>내 손안의 투자 <span class="badge-ver">PC v9.0 (UI 최적화)</span></h1>
         <div class="header-buttons">
             <button type="button" onclick="openSectorModal()" style="font-size:14px; padding:8px 16px; border:none; background:var(--toss-text-main); border-radius:6px; color:#fff; cursor:pointer; font-weight:600; margin-right: 8px;">📁 섹터 관리</button>
             <button type="button" onclick="resetApp()" style="font-size:14px; padding:8px 16px; border:1px solid #ccc; background:#fff; border-radius:6px; color:#666; cursor:pointer; font-weight:600;">데이터 초기화</button>
@@ -109,13 +111,39 @@
     </main>
 </div>
 
-    <div id="sectorModal" class="modal"><div class="modal-content"><h3 style="margin-top:0; border-bottom: 2px solid #191f28; padding-bottom:10px;">섹터 관리 및 순서 변경</h3><div id="sectorListAdmin" style="margin: 20px 0;"></div><input type="text" id="newSectorName" class="input-field" placeholder="새 섹터 이름 입력"><button type="button" onclick="addSector()" style="width:100%; padding:12px; margin-top:10px; background:var(--toss-blue); color:#fff; border:none; border-radius:6px; font-weight:600; cursor:pointer;">섹터 추가</button><button type="button" onclick="closeModal('sectorModal')" style="width:100%; border:none; background:#f2f4f6; padding:12px; margin-top:10px; border-radius:6px; font-weight:600; color:var(--toss-text-sub); cursor:pointer;">닫기</button></div></div>
+    <div id="sectorModal" class="modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #191f28; padding-bottom: 10px;">
+                <h3 style="margin:0;">섹터 관리 및 순서 변경</h3>
+                <button type="button" class="modal-close-btn" onclick="closeModal('sectorModal')">✕</button>
+            </div>
+            
+            <div id="sectorListAdmin" style="margin: 20px 0;"></div>
+            <input type="text" id="newSectorName" class="input-field" placeholder="새 섹터 이름 입력">
+            <button type="button" onclick="addSector()" style="width:100%; padding:12px; margin-top:10px; background:var(--toss-blue); color:#fff; border:none; border-radius:6px; font-weight:600; cursor:pointer;">섹터 추가</button>
+            <button type="button" onclick="closeModal('sectorModal')" style="width:100%; border:none; background:#f2f4f6; padding:12px; margin-top:10px; border-radius:6px; font-weight:600; color:var(--toss-text-sub); cursor:pointer;">닫기</button>
+        </div>
+    </div>
     
-    <div id="tickerModal" class="modal"><div class="modal-content"><h3 style="margin-top:0; border-bottom: 2px solid #191f28; padding-bottom:10px;">종목/ETF 검색</h3><p id="targetSectorHint" style="font-size: 14px; color: var(--toss-blue); font-weight:600;"></p><div style="position: relative;"><input type="text" id="tickerSearchInput" class="input-field" placeholder="기업명, ETF명, 원자재, 금/은 입력" autocomplete="off"><div id="searchResults" class="search-results"></div></div><button type="button" onclick="closeModal('tickerModal')" style="width:100%; border:none; background:#f2f4f6; padding:12px; margin-top:20px; border-radius:6px; font-weight:600; color:var(--toss-text-sub); cursor:pointer;">닫기</button></div></div>
+    <div id="tickerModal" class="modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #191f28; padding-bottom: 10px;">
+                <h3 style="margin:0;">종목/ETF 검색</h3>
+                <button type="button" class="modal-close-btn" onclick="closeModal('tickerModal')">✕</button>
+            </div>
+            
+            <p id="targetSectorHint" style="font-size: 14px; color: var(--toss-blue); font-weight:600; margin-top: 15px;"></p>
+            <div style="position: relative;">
+                <input type="text" id="tickerSearchInput" class="input-field" placeholder="기업명, ETF명, 원자재, 금/은 입력" autocomplete="off">
+                <div id="searchResults" class="search-results"></div>
+            </div>
+            <button type="button" onclick="closeModal('tickerModal')" style="width:100%; border:none; background:#f2f4f6; padding:12px; margin-top:20px; border-radius:6px; font-weight:600; color:var(--toss-text-sub); cursor:pointer;">닫기</button>
+        </div>
+    </div>
 
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js" async></script>
     <script>
-        const STORAGE_KEY = 'gem_pc_final_v8'; 
+        const STORAGE_KEY = 'gem_pc_final_v8'; // 이전 데이터 유지
 
         const defaultData = {
             "생성형AI": ["MSFT", "GOOGL", "NVDA"],
@@ -196,19 +224,16 @@
             loadNews();
         }
 
-        // --- 국내 차트 탭 변경 함수 (전역) ---
         window.changeKrxChart = function(ticker, period, btnElement) {
             const img = document.getElementById(`krx_img_${ticker}`);
-            const timestamp = new Date().getTime(); // 캐시 방지
+            const timestamp = new Date().getTime();
             img.src = `https://ssl.pstatic.net/imgfinance/chart/item/area/${period}/${ticker}.png?sidcode=${timestamp}`;
             
-            // 버튼 디자인 활성화/비활성화 처리
             const container = btnElement.parentElement;
             container.querySelectorAll('.krx-btn').forEach(b => b.classList.remove('active'));
             btnElement.classList.add('active');
         };
 
-        // --- 하이브리드 렌더링 로직 ---
         function renderCharts() {
             const grid = document.getElementById('chartGrid');
             grid.innerHTML = '';
@@ -230,22 +255,20 @@
                     else if (stockInfo.t === 'PRECIOUS') badgeHtml = `<span class="badge-gold">귀금속</span>`;
                 }
 
-                // 카드 상단 헤더
                 let cardHtml = `<div class="chart-header"><span class="ticker-name">${displayName} ${badgeHtml}</span><button type="button" class="delete-btn" onclick="removeTicker('${ticker}')">✕ 삭제</button></div>`;
 
-                // [국내 종목 판단 (6자리 숫자)]
                 if (/^\d{6}$/.test(ticker)) {
-                    // 네이버 금융 이미지 엔진 적용
+                    // [핵심 변경] 국내 차트(네이버)의 max-width 제한을 풀고 height에 맞춰 100% 꽉 차게 렌더링
                     cardHtml += `
-                        <div style="display:flex; gap:8px; margin-bottom:12px; justify-content:center;">
+                        <div style="display:flex; gap:8px; margin-bottom:15px; justify-content:center;">
                             <button type="button" class="krx-btn active" onclick="changeKrxChart('${ticker}', 'day', this)">1일</button>
                             <button type="button" class="krx-btn" onclick="changeKrxChart('${ticker}', 'week', this)">1주일</button>
                             <button type="button" class="krx-btn" onclick="changeKrxChart('${ticker}', 'month', this)">1개월</button>
                             <button type="button" class="krx-btn" onclick="changeKrxChart('${ticker}', 'month3', this)">3개월</button>
                             <button type="button" class="krx-btn" onclick="changeKrxChart('${ticker}', 'year', this)">1년</button>
                         </div>
-                        <div style="background:#fff; border:1px solid #e5e8eb; border-radius:8px; text-align:center; padding:15px 0;">
-                            <img id="krx_img_${ticker}" src="https://ssl.pstatic.net/imgfinance/chart/item/area/day/${ticker}.png?sidcode=${new Date().getTime()}" style="width:100%; max-width:380px; height:auto; object-fit:contain; min-height: 250px;">
+                        <div style="background:#fff; border:1px solid #e5e8eb; border-radius:8px; padding:10px; height:330px; display:flex; align-items:center; justify-content:center;">
+                            <img id="krx_img_${ticker}" src="https://ssl.pstatic.net/imgfinance/chart/item/area/day/${ticker}.png?sidcode=${new Date().getTime()}" style="width:100%; height:100%; object-fit:contain;">
                         </div>
                         <div style="margin-top: 15px; text-align: right;">
                             <a href="https://m.stock.naver.com/domestic/stock/${ticker}/total" target="_blank" style="font-size:13px; font-weight:600; color:var(--toss-blue); text-decoration:none; background:#e8f3ff; padding:8px 16px; border-radius:6px; display:inline-block;">네이버페이 증권에서 자세히 보기 ↗</a>
@@ -254,7 +277,6 @@
                     card.innerHTML = cardHtml;
                     grid.appendChild(card);
                 } else {
-                    // [해외 종목, 원자재, 귀금속] -> 트레이딩뷰 위젯 적용
                     const widgetId = `tv_${ticker.replace(':','_')}_${Math.random().toString(36).substr(2, 9)}`;
                     cardHtml += `<div id="${widgetId}" class="tv-widget">차트 로딩 중...</div>`;
                     card.innerHTML = cardHtml;
