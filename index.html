@@ -33,7 +33,14 @@
         .ticker-name { font-weight: 700; font-size: 18px; display: flex; align-items: center; }
         .delete-btn { color: #999; cursor: pointer; border: none; background: none; font-size: 14px; font-weight: 600; transition: color 0.2s;}
         .delete-btn:hover { color: #f04452; }
+        
+        /* 글로벌 차트용 (TradingView) */
         .tv-widget { height: 350px; border-radius: 8px; overflow: hidden; background: #f9fafb; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #999;}
+        
+        /* 국내 차트용 (Naver) 버튼 스타일 */
+        .krx-btn { background: #f2f4f6; border: 1px solid transparent; border-radius: 6px; padding: 6px 12px; font-size: 13px; font-weight: 600; color: var(--toss-text-sub); cursor: pointer; transition: 0.2s; }
+        .krx-btn:hover { background: #e5e8eb; }
+        .krx-btn.active { background: var(--toss-blue); color: #fff; }
 
         .news-card { background: var(--toss-card); border-radius: 12px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);}
         .news-filter-bar { display: flex; justify-content: flex-start; gap: 16px; align-items: center; padding-bottom: 20px; border-bottom: 1px solid var(--toss-border); margin-bottom: 10px; }
@@ -57,11 +64,10 @@
         .search-name { font-weight: 600; font-size: 15px; color: var(--toss-text-main); }
         .search-symbol { color: var(--toss-blue); font-weight: 700; font-size: 13px; }
 
-        /* 뱃지 스타일 정의 */
         .badge-etf { background-color: #e8f3ff; color: var(--toss-blue); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; margin-left: 8px; }
         .badge-lme { background-color: #fce4e4; color: var(--toss-red); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; margin-left: 8px; }
         .badge-gold { background-color: #fff4e6; color: #f5a623; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; margin-left: 8px; }
-        .badge-ver { font-size: 12px; background: #f5a623; color: #fff; padding: 4px 8px; border-radius: 6px; font-weight: 600; }
+        .badge-ver { font-size: 12px; background: var(--toss-text-main); color: #fff; padding: 4px 8px; border-radius: 6px; font-weight: 600; }
         
         .move-btn { border: 1px solid #e5e8eb; background: #fff; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; color: #666; transition: 0.2s;}
         .move-btn:hover { background: #f2f4f6; color: #111; }
@@ -71,7 +77,7 @@
 
 <div class="app-wrapper">
     <header class="app-header">
-        <h1>내 손안의 투자 <span class="badge-ver">PC v7.0 (귀금속 추가)</span></h1>
+        <h1>내 손안의 투자 <span class="badge-ver">PC v8.0 (국내차트 완벽지원)</span></h1>
         <div class="header-buttons">
             <button type="button" onclick="openSectorModal()" style="font-size:14px; padding:8px 16px; border:none; background:var(--toss-text-main); border-radius:6px; color:#fff; cursor:pointer; font-weight:600; margin-right: 8px;">📁 섹터 관리</button>
             <button type="button" onclick="resetApp()" style="font-size:14px; padding:8px 16px; border:1px solid #ccc; background:#fff; border-radius:6px; color:#666; cursor:pointer; font-weight:600;">데이터 초기화</button>
@@ -85,6 +91,7 @@
             <span id="currentSectorName">관심 종목 차트</span>
             <button type="button" onclick="openAddTickerModal()" style="font-size: 15px; padding: 8px 16px; background: var(--toss-blue); color: #fff; border:none; border-radius: 6px; font-weight:700; cursor:pointer;">+ 종목 추가</button>
         </div>
+        
         <div class="chart-grid" id="chartGrid"></div>
 
         <div class="section-title">글로벌 & 국내 실시간 뉴스 포털</div>
@@ -102,33 +109,14 @@
     </main>
 </div>
 
-    <div id="sectorModal" class="modal">
-        <div class="modal-content">
-            <h3 style="margin-top:0; border-bottom: 2px solid #191f28; padding-bottom:10px;">섹터 관리 및 순서 변경</h3>
-            <div id="sectorListAdmin" style="margin: 20px 0;"></div>
-            <input type="text" id="newSectorName" class="input-field" placeholder="새 섹터 이름 입력">
-            <button type="button" onclick="addSector()" style="width:100%; padding:12px; margin-top:10px; background:var(--toss-blue); color:#fff; border:none; border-radius:6px; font-weight:600; cursor:pointer;">섹터 추가</button>
-            <button type="button" onclick="closeModal('sectorModal')" style="width:100%; border:none; background:#f2f4f6; padding:12px; margin-top:10px; border-radius:6px; font-weight:600; color:var(--toss-text-sub); cursor:pointer;">닫기</button>
-        </div>
-    </div>
+    <div id="sectorModal" class="modal"><div class="modal-content"><h3 style="margin-top:0; border-bottom: 2px solid #191f28; padding-bottom:10px;">섹터 관리 및 순서 변경</h3><div id="sectorListAdmin" style="margin: 20px 0;"></div><input type="text" id="newSectorName" class="input-field" placeholder="새 섹터 이름 입력"><button type="button" onclick="addSector()" style="width:100%; padding:12px; margin-top:10px; background:var(--toss-blue); color:#fff; border:none; border-radius:6px; font-weight:600; cursor:pointer;">섹터 추가</button><button type="button" onclick="closeModal('sectorModal')" style="width:100%; border:none; background:#f2f4f6; padding:12px; margin-top:10px; border-radius:6px; font-weight:600; color:var(--toss-text-sub); cursor:pointer;">닫기</button></div></div>
     
-    <div id="tickerModal" class="modal">
-        <div class="modal-content">
-            <h3 style="margin-top:0; border-bottom: 2px solid #191f28; padding-bottom:10px;">종목/ETF 검색</h3>
-            <p id="targetSectorHint" style="font-size: 14px; color: var(--toss-blue); font-weight:600;"></p>
-            <div style="position: relative;">
-                <input type="text" id="tickerSearchInput" class="input-field" placeholder="기업명, ETF명, 원자재, 금/은 입력" autocomplete="off">
-                <div id="searchResults" class="search-results"></div>
-            </div>
-            <button type="button" onclick="closeModal('tickerModal')" style="width:100%; border:none; background:#f2f4f6; padding:12px; margin-top:20px; border-radius:6px; font-weight:600; color:var(--toss-text-sub); cursor:pointer;">닫기</button>
-        </div>
-    </div>
+    <div id="tickerModal" class="modal"><div class="modal-content"><h3 style="margin-top:0; border-bottom: 2px solid #191f28; padding-bottom:10px;">종목/ETF 검색</h3><p id="targetSectorHint" style="font-size: 14px; color: var(--toss-blue); font-weight:600;"></p><div style="position: relative;"><input type="text" id="tickerSearchInput" class="input-field" placeholder="기업명, ETF명, 원자재, 금/은 입력" autocomplete="off"><div id="searchResults" class="search-results"></div></div><button type="button" onclick="closeModal('tickerModal')" style="width:100%; border:none; background:#f2f4f6; padding:12px; margin-top:20px; border-radius:6px; font-weight:600; color:var(--toss-text-sub); cursor:pointer;">닫기</button></div></div>
 
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js" async></script>
     <script>
-        const STORAGE_KEY = 'gem_pc_final_v7'; 
+        const STORAGE_KEY = 'gem_pc_final_v8'; 
 
-        // 1. 기본 데이터에 귀금속 섹션 추가
         const defaultData = {
             "생성형AI": ["MSFT", "GOOGL", "NVDA"],
             "에이전틱AI": ["AMZN", "META", "PLTR"],
@@ -138,20 +126,14 @@
             "비철금속(LME)": ["CAPITALCOM:COPPER", "CAPITALCOM:ALUMINUM", "CAPITALCOM:ZINC", "CAPITALCOM:NICKEL"]
         };
 
-        // 2. 마스터 DB (귀금속 OANDA 티커 추가)
         const masterStockDB = [
-            // 귀금속
             {n: "금 (Gold)", s: "OANDA:XAUUSD", e: "귀금속 (OANDA)", t: "PRECIOUS"},
             {n: "은 (Silver)", s: "OANDA:XAGUSD", e: "귀금속 (OANDA)", t: "PRECIOUS"},
             {n: "백금 (Platinum)", s: "OANDA:XPTUSD", e: "귀금속 (OANDA)", t: "PRECIOUS"},
-            
-            // 원자재(LME 추종 글로벌 CFD)
             {n: "구리 (Copper)", s: "CAPITALCOM:COPPER", e: "원자재 CFD", t: "LME"},
             {n: "알루미늄 (Aluminum)", s: "CAPITALCOM:ALUMINUM", e: "원자재 CFD", t: "LME"},
             {n: "아연 (Zinc)", s: "CAPITALCOM:ZINC", e: "원자재 CFD", t: "LME"},
             {n: "니켈 (Nickel)", s: "CAPITALCOM:NICKEL", e: "원자재 CFD", t: "LME"},
-            
-            // 기본 주식
             {n: "삼성전자", s: "005930", e: "KOSPI", t: "STOCK"}, {n: "SK하이닉스", s: "000660", e: "KOSPI", t: "STOCK"},
             {n: "현대차", s: "005380", e: "KOSPI", t: "STOCK"}, {n: "NAVER (네이버)", s: "035420", e: "KOSPI", t: "STOCK"},
             {n: "Apple", s: "AAPL", e: "NASDAQ", t: "STOCK"}, {n: "Tesla", s: "TSLA", e: "NASDAQ", t: "STOCK"},
@@ -159,8 +141,6 @@
             {n: "Alphabet", s: "GOOGL", e: "NASDAQ", t: "STOCK"}, {n: "Meta", s: "META", e: "NASDAQ", t: "STOCK"},
             {n: "Palantir", s: "PLTR", e: "NYSE", t: "STOCK"}, {n: "ASML", s: "ASML", e: "NASDAQ", t: "STOCK"},
             {n: "Amazon", s: "AMZN", e: "NASDAQ", t: "STOCK"}, {n: "SPY", s: "SPY", e: "NYSE", t: "ETF"}, {n: "QQQ", s: "QQQ", e: "NASDAQ", t: "ETF"},
-            
-            // ETF 시리즈 (KODEX, TIGER, ACE)
             {n: "KODEX 200", s: "069500", e: "KRX", t: "ETF"}, {n: "KODEX 레버리지", s: "122630", e: "KRX", t: "ETF"},
             {n: "TIGER 미국나스닥100", s: "133690", e: "KRX", t: "ETF"}, {n: "TIGER 미국S&P500", s: "360200", e: "KRX", t: "ETF"},
             {n: "TIGER 차이나전기차SOLACTIVE", s: "371460", e: "KRX", t: "ETF"}, {n: "TIGER 2차전지테마", s: "305540", e: "KRX", t: "ETF"},
@@ -180,24 +160,14 @@
                 if (localData) { 
                     data = JSON.parse(localData); 
                     if (!data || Object.keys(data).length === 0) data = JSON.parse(JSON.stringify(defaultData)); 
-                } else { 
-                    data = JSON.parse(JSON.stringify(defaultData)); 
-                }
+                } else { data = JSON.parse(JSON.stringify(defaultData)); }
             } catch (e) { data = JSON.parse(JSON.stringify(defaultData)); }
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
             currentSector = Object.keys(data)[0];
         }
 
-        function safeSaveData() {
-            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
-        }
-
-        function resetApp() { 
-            if(confirm("모든 데이터를 초기화하시겠습니까? (귀금속 탭이 복원됩니다.)")) { 
-                try { localStorage.removeItem(STORAGE_KEY); } catch(e){}
-                location.reload(); 
-            } 
-        }
+        function safeSaveData() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {} }
+        function resetApp() { if(confirm("모든 데이터를 초기화하시겠습니까?")) { try { localStorage.removeItem(STORAGE_KEY); } catch(e){} location.reload(); } }
 
         function initUI() {
             ensureDataSafe();
@@ -226,6 +196,19 @@
             loadNews();
         }
 
+        // --- 국내 차트 탭 변경 함수 (전역) ---
+        window.changeKrxChart = function(ticker, period, btnElement) {
+            const img = document.getElementById(`krx_img_${ticker}`);
+            const timestamp = new Date().getTime(); // 캐시 방지
+            img.src = `https://ssl.pstatic.net/imgfinance/chart/item/area/${period}/${ticker}.png?sidcode=${timestamp}`;
+            
+            // 버튼 디자인 활성화/비활성화 처리
+            const container = btnElement.parentElement;
+            container.querySelectorAll('.krx-btn').forEach(b => b.classList.remove('active'));
+            btnElement.classList.add('active');
+        };
+
+        // --- 하이브리드 렌더링 로직 ---
         function renderCharts() {
             const grid = document.getElementById('chartGrid');
             grid.innerHTML = '';
@@ -237,14 +220,9 @@
                 const card = document.createElement('div');
                 card.className = 'chart-card';
                 
-                let symbol = ticker;
-                if (/^\d{6}$/.test(ticker)) symbol = `KRX:${ticker}`; 
-                
-                const widgetId = `tv_${ticker.replace(':','_')}_${Math.random().toString(36).substr(2, 9)}`;
                 const stockInfo = masterStockDB.find(s => s.s === ticker);
                 const displayName = stockInfo ? stockInfo.n.split(' (')[0] : ticker;
                 
-                // 뱃지 적용 로직 추가 (PRECIOUS)
                 let badgeHtml = '';
                 if (stockInfo) {
                     if (stockInfo.t === 'ETF') badgeHtml = `<span class="badge-etf">ETF</span>`;
@@ -252,16 +230,44 @@
                     else if (stockInfo.t === 'PRECIOUS') badgeHtml = `<span class="badge-gold">귀금속</span>`;
                 }
 
-                card.innerHTML = `<div class="chart-header"><span class="ticker-name">${displayName} ${badgeHtml}</span><button type="button" class="delete-btn" onclick="removeTicker('${ticker}')">✕ 삭제</button></div><div id="${widgetId}" class="tv-widget">차트 렌더링 중...</div>`;
-                grid.appendChild(card);
-                
-                setTimeout(() => {
-                    try { 
-                        if (typeof TradingView !== 'undefined') { 
-                            new TradingView.widget({ "autosize": true, "symbol": symbol, "interval": "D", "timezone": "Asia/Seoul", "theme": "light", "style": "2", "locale": "kr", "container_id": widgetId, "hide_top_toolbar": true, "hide_legend": true, "save_image": false }); 
-                        }
-                    } catch(err) {}
-                }, 50);
+                // 카드 상단 헤더
+                let cardHtml = `<div class="chart-header"><span class="ticker-name">${displayName} ${badgeHtml}</span><button type="button" class="delete-btn" onclick="removeTicker('${ticker}')">✕ 삭제</button></div>`;
+
+                // [국내 종목 판단 (6자리 숫자)]
+                if (/^\d{6}$/.test(ticker)) {
+                    // 네이버 금융 이미지 엔진 적용
+                    cardHtml += `
+                        <div style="display:flex; gap:8px; margin-bottom:12px; justify-content:center;">
+                            <button type="button" class="krx-btn active" onclick="changeKrxChart('${ticker}', 'day', this)">1일</button>
+                            <button type="button" class="krx-btn" onclick="changeKrxChart('${ticker}', 'week', this)">1주일</button>
+                            <button type="button" class="krx-btn" onclick="changeKrxChart('${ticker}', 'month', this)">1개월</button>
+                            <button type="button" class="krx-btn" onclick="changeKrxChart('${ticker}', 'month3', this)">3개월</button>
+                            <button type="button" class="krx-btn" onclick="changeKrxChart('${ticker}', 'year', this)">1년</button>
+                        </div>
+                        <div style="background:#fff; border:1px solid #e5e8eb; border-radius:8px; text-align:center; padding:15px 0;">
+                            <img id="krx_img_${ticker}" src="https://ssl.pstatic.net/imgfinance/chart/item/area/day/${ticker}.png?sidcode=${new Date().getTime()}" style="width:100%; max-width:380px; height:auto; object-fit:contain; min-height: 250px;">
+                        </div>
+                        <div style="margin-top: 15px; text-align: right;">
+                            <a href="https://m.stock.naver.com/domestic/stock/${ticker}/total" target="_blank" style="font-size:13px; font-weight:600; color:var(--toss-blue); text-decoration:none; background:#e8f3ff; padding:8px 16px; border-radius:6px; display:inline-block;">네이버페이 증권에서 자세히 보기 ↗</a>
+                        </div>
+                    `;
+                    card.innerHTML = cardHtml;
+                    grid.appendChild(card);
+                } else {
+                    // [해외 종목, 원자재, 귀금속] -> 트레이딩뷰 위젯 적용
+                    const widgetId = `tv_${ticker.replace(':','_')}_${Math.random().toString(36).substr(2, 9)}`;
+                    cardHtml += `<div id="${widgetId}" class="tv-widget">차트 로딩 중...</div>`;
+                    card.innerHTML = cardHtml;
+                    grid.appendChild(card);
+                    
+                    setTimeout(() => {
+                        try { 
+                            if (typeof TradingView !== 'undefined') { 
+                                new TradingView.widget({ "autosize": true, "symbol": ticker, "interval": "D", "timezone": "Asia/Seoul", "theme": "light", "style": "2", "locale": "kr", "container_id": widgetId, "hide_top_toolbar": true, "hide_legend": true, "save_image": false }); 
+                            }
+                        } catch(err) {}
+                    }, 50);
+                }
             });
         }
 
@@ -337,7 +343,6 @@
         function deleteSector(s) { if(confirm(`'${s}' 섹터를 삭제하시겠습니까?`)) { delete data[s]; currentSector = Object.keys(data)[0] || null; safeSaveData(); if(!currentSector) { ensureDataSafe(); } renderSectorNav(); openSectorModal(); renderContent(); } }
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-        // 뉴스 로딩 (귀금속 키워드 최적화)
         function loadNews() {
             const container = document.getElementById('newsContainer');
             const timeframeValue = document.getElementById('newsTimeframe').value; 
@@ -349,8 +354,6 @@
             tickers.forEach(t => {
                 const stockInfo = masterStockDB.find(s => s.s === t);
                 let cleanName = stockInfo ? stockInfo.n.split(' (')[0] : t;
-                
-                // 원자재(LME)나 귀금속(PRECIOUS)인 경우, '주식' 키워드 대신 '가격' 키워드를 붙이도록 이름 치환
                 if (stockInfo && (stockInfo.t === 'LME' || stockInfo.t === 'PRECIOUS')) {
                     cleanName = cleanName + " 가격"; 
                 }
@@ -361,8 +364,6 @@
             keywords.forEach((kw, i) => {
                 const isEng = (i % 2 !== 0); 
                 const langParams = isEng ? '&hl=en&gl=US' : '&hl=ko&gl=KR';
-                
-                // "가격" 이라는 단어가 들어있으면 주식(stock) 키워드를 강제로 붙이지 않음 (정확도 향상)
                 const suffix = kw.includes("가격") ? '' : (isEng ? ' stock' : ' 주식');
                 const displayType = isEng ? 'GLOBAL 🇺🇸' : 'KOREA 🇰🇷';
                 
