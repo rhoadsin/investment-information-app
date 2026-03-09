@@ -13,14 +13,14 @@
             --toss-red: #f04452;
         }
 
-        /* 튕김 방지 */
+        /* 튕김 방지 및 모바일 제스처 차단 핵심 코드 */
         html, body { 
             font-family: 'Pretendard', sans-serif; background: var(--toss-bg); margin: 0; color: var(--toss-text-main); padding-bottom: 90px;
-            overscroll-behavior: none; 
+            overscroll-behavior: none; touch-action: pan-y;
         }
 
-        .app-header { padding: 24px 24px 10px 24px; background: var(--toss-bg); }
-        .app-header h1 { font-size: 24px; margin: 0 0 16px 0; font-weight: 700; display: flex; justify-content: space-between; align-items: center;}
+        .app-header { padding: 20px 24px 10px 24px; background: var(--toss-bg); }
+        .app-header h1 { font-size: 24px; margin: 0 0 12px 0; font-weight: 700; display: flex; justify-content: space-between; align-items: center;}
         
         .sector-nav { display: flex; gap: 12px; overflow-x: auto; padding: 0 24px 15px 24px; scrollbar-width: none; }
         .sector-nav::-webkit-scrollbar { display: none; }
@@ -63,158 +63,4 @@
 
         .search-results { position: absolute; width: calc(100% - 48px); max-height: 250px; overflow-y: auto; background: #fff; border: 1px solid var(--toss-border); border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 9999; display: none; margin-top: 4px; }
         .search-item { padding: 14px 16px; border-bottom: 1px solid #f2f4f6; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .search-item:hover { background: #f9fafb; }
-        .search-name { font-weight: 600; font-size: 15px; color: var(--toss-text-main); display: flex; align-items: center; }
-        .search-symbol { color: var(--toss-blue); font-weight: 700; font-size: 13px; }
-        .search-exch { font-size: 11px; color: #999; margin-left: 8px; }
-        .badge-etf { background-color: #e8f3ff; color: var(--toss-blue); padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; margin-left: 6px; }
-    </style>
-</head>
-<body>
-
-    <header class="app-header">
-        <h1>
-            내 손안의 투자
-            <button type="button" onclick="resetApp()" style="font-size:12px; padding:4px 8px; border:1px solid #ccc; background:#fff; border-radius:6px; color:#666; cursor:pointer;">데이터 초기화</button>
-        </h1>
-        <div id="refresh-time" style="font-size: 12px; color: var(--toss-text-sub); margin-bottom: 10px;"></div>
-    </header>
-
-    <nav class="sector-nav" id="sectorNav"></nav>
-
-    <main class="container">
-        <div class="section-title">
-            <span id="currentSectorName">관심 종목</span>
-            <button type="button" onclick="openAddTickerModal()" style="font-size: 14px; color: var(--toss-blue); border:none; background:none; font-weight:700; cursor:pointer;">+ 추가</button>
-        </div>
-        <div class="chart-grid" id="chartGrid"></div>
-
-        <div class="section-title" style="margin-bottom: 0;">주요 뉴스</div>
-        <div class="news-card">
-            <div class="news-filter-bar">
-                <select id="newsTimeframe" class="news-select" onchange="loadNews()">
-                    <option value="7d">최근 1주일 (기본)</option>
-                    <option value="30d">최근 1개월</option>
-                    <option value="1y">최근 1년</option>
-                </select>
-                <span style="font-size: 12px; font-weight: 600; color: var(--toss-blue); cursor: pointer;" onclick="loadNews()">🔄 실시간 연동</span>
-            </div>
-            <div id="newsContainer"></div>
-        </div>
-    </main>
-
-    <div class="admin-bar">
-        <button type="button" class="fab" onclick="openSectorModal()">📁 섹터 관리</button>
-    </div>
-
-    <div id="sectorModal" class="modal"><div class="modal-content"><h3 style="margin-top:0;">섹터 관리</h3><div id="sectorListAdmin"></div><hr style="border:0; height:1px; background:var(--toss-border); margin: 16px 0;"><input type="text" id="newSectorName" class="input-field" placeholder="새 섹터 이름 (예: 반도체)"><button type="button" onclick="addSector()" class="fab" style="width:100%; margin-top:10px; background:var(--toss-blue);">섹터 추가</button><button type="button" onclick="closeModal('sectorModal')" style="width:100%; border:none; background:none; margin-top:15px; font-weight:600; color:var(--toss-text-sub); cursor:pointer;">닫기</button></div></div>
-    <div id="tickerModal" class="modal"><div class="modal-content"><h3 style="margin-top:0;">종목/ETF 검색</h3><p id="targetSectorHint" style="font-size: 13px; color: var(--toss-blue); margin-bottom:15px;"></p><div style="position: relative;"><input type="text" id="tickerSearchInput" class="input-field" placeholder="기업명, ETF명, 티커 입력" autocomplete="off"><div id="searchResults" class="search-results"></div></div><button type="button" onclick="closeModal('tickerModal')" style="width:100%; border:none; background:none; margin-top:20px; font-weight:600; color:var(--toss-text-sub); cursor:pointer;">취소 및 닫기</button></div></div>
-
-    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-    <script>
-        const defaultData = {
-            "생성형AI": ["MSFT", "GOOGL", "NVDA"],
-            "에이전틱AI": ["AMZN", "META", "PLTR"],
-            "피지컬AI": ["TSLA", "005930", "ASML"],
-            "시장지수(ETF)": ["SPY", "QQQ", "069500"]
-        };
-
-        const masterStockDB = [
-            {n: "삼성전자", s: "005930", e: "KOSPI", t: "STOCK"}, {n: "SK하이닉스", s: "000660", e: "KOSPI", t: "STOCK"},
-            {n: "현대차", s: "005380", e: "KOSPI", t: "STOCK"}, {n: "NAVER (네이버)", s: "035420", e: "KOSPI", t: "STOCK"},
-            {n: "Apple", s: "AAPL", e: "NASDAQ", t: "STOCK"}, {n: "Tesla", s: "TSLA", e: "NASDAQ", t: "STOCK"},
-            {n: "NVIDIA", s: "NVDA", e: "NASDAQ", t: "STOCK"}, {n: "Microsoft", s: "MSFT", e: "NASDAQ", t: "STOCK"},
-            {n: "Alphabet", s: "GOOGL", e: "NASDAQ", t: "STOCK"}, {n: "Meta", s: "META", e: "NASDAQ", t: "STOCK"},
-            {n: "SPY", s: "SPY", e: "NYSE", t: "ETF"}, {n: "QQQ", s: "QQQ", e: "NASDAQ", t: "ETF"},
-            {n: "KODEX 200", s: "069500", e: "KRX", t: "ETF"}
-        ];
-
-        // --- 1. 철벽 방어 데이터 복구 로직 (하얀 화면 원천 차단) ---
-        let data = {};
-        let currentSector = null;
-        
-        function ensureDataSafe() {
-            try {
-                const localData = localStorage.getItem('gem_invest_data');
-                if (localData) { 
-                    data = JSON.parse(localData); 
-                    if (typeof data !== 'object' || Array.isArray(data) || Object.keys(data).length === 0) { 
-                        throw new Error("데이터 구조 깨짐");
-                    }
-                } else { 
-                    throw new Error("데이터 없음");
-                }
-            } catch (e) { 
-                data = JSON.parse(JSON.stringify(defaultData)); 
-                localStorage.setItem('gem_invest_data', JSON.stringify(data));
-            }
-            currentSector = Object.keys(data)[0];
-        }
-
-        ensureDataSafe();
-
-        function resetApp() { 
-            if(confirm("모든 데이터를 지우고 초기 설정으로 복구하시겠습니까?")) { 
-                localStorage.removeItem('gem_invest_data'); 
-                location.reload(); 
-            } 
-        }
-
-        function init() {
-            if (!currentSector) ensureDataSafe(); // 이중 방어
-            renderSectorNav();
-            renderContent();
-        }
-
-        function updateTimeDisplay() {
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            const elem = document.getElementById('refresh-time');
-            if(elem) elem.innerText = `최근 동기화: 오늘 ${timeStr}`;
-        }
-
-        function renderSectorNav() {
-            const nav = document.getElementById('sectorNav');
-            nav.innerHTML = '';
-            Object.keys(data).forEach(sector => {
-                const btn = document.createElement('div');
-                btn.className = `sector-tab ${sector === currentSector ? 'active' : ''}`;
-                btn.innerText = sector;
-                btn.onclick = () => { currentSector = sector; renderSectorNav(); renderContent(); };
-                nav.appendChild(btn);
-            });
-        }
-
-        function renderContent() {
-            if(!currentSector) return;
-            document.getElementById('currentSectorName').innerText = `${currentSector}`;
-            renderCharts();
-            loadNews();
-        }
-
-        function renderCharts() {
-            const grid = document.getElementById('chartGrid');
-            grid.innerHTML = '';
-            if(!data[currentSector] || data[currentSector].length === 0) { grid.innerHTML = '<div style="padding:20px; color:#999; grid-column: 1 / -1; text-align:center;">종목을 추가해보세요.</div>'; return; }
-
-            data[currentSector].forEach(ticker => {
-                const card = document.createElement('div');
-                card.className = 'chart-card';
-                const symbol = /^\d{6}$/.test(ticker) ? `KRX:${ticker}` : ticker;
-                const widgetId = `tv_${ticker}_${Math.random().toString(36).substr(2, 9)}`;
-                const stockInfo = masterStockDB.find(s => s.s === ticker);
-                const displayName = stockInfo ? stockInfo.n.split(' (')[0] : ticker;
-                const badgeHtml = stockInfo && stockInfo.t === 'ETF' ? `<span class="badge-etf">ETF</span>` : '';
-
-                card.innerHTML = `<div class="chart-header"><span class="ticker-name">${displayName} ${badgeHtml}</span><button type="button" class="delete-btn" onclick="removeTicker('${ticker}')">✕</button></div><div id="${widgetId}" class="tv-widget">차트 로딩중...</div>`;
-                grid.appendChild(card);
-                try { if (typeof TradingView !== 'undefined') { new TradingView.widget({ "autosize": true, "symbol": symbol, "interval": "D", "timezone": "Asia/Seoul", "theme": "light", "style": "2", "locale": "kr", "container_id": widgetId, "hide_top_toolbar": true, "hide_legend": true, "save_image": false }); } } catch(err) {}
-            });
-        }
-
-        // 검색 및 기능 로직
-        document.getElementById('tickerSearchInput').addEventListener('input', function(e) { const query = e.target.value.trim().toLowerCase(); const resultsContainer = document.getElementById('searchResults'); if (query.length === 0) { resultsContainer.style.display = 'none'; return; } const matchedStocks = masterStockDB.filter(stock => stock.n.toLowerCase().includes(query) || stock.s.toLowerCase().includes(query) ); if (matchedStocks.length > 0) { resultsContainer.innerHTML = ''; matchedStocks.forEach(item => { const div = document.createElement('div'); div.className = 'search-item'; const badge = item.t === 'ETF' ? `<span class="badge-etf">ETF</span>` : ''; div.innerHTML = `<div><span class="search-name">${item.n} ${badge}</span><span class="search-exch">${item.e}</span></div><span class="search-symbol">${item.s}</span>`; div.onclick = () => { addSymbolToSector(item.s); }; resultsContainer.appendChild(div); }); resultsContainer.style.display = 'block'; } else { resultsContainer.innerHTML = '<div style="padding:15px; color:#999; font-size:14px; text-align:center;">검색 결과 없음<br><button type="button" onclick="addSymbolToSector(\''+query.toUpperCase()+'\')" style="padding:5px 10px; background:var(--toss-blue); color:#fff; border:none; border-radius:5px; margin-top:5px;">직접 추가</button></div>'; resultsContainer.style.display = 'block'; } });
-        function addSymbolToSector(symbol) { if (!data[currentSector].includes(symbol)) { data[currentSector].push(symbol); saveData(); renderContent(); closeModal('tickerModal'); } else { alert('이미 추가된 종목입니다.'); } }
-        function removeTicker(ticker) { data[currentSector] = data[currentSector].filter(t => t !== ticker); saveData(); renderContent(); }
-        function openAddTickerModal() { document.getElementById('targetSectorHint').innerText = `[${currentSector}] 섹터에 추가`; document.getElementById('tickerSearchInput').value = ''; document.getElementById('searchResults').style.display = 'none'; document.getElementById('tickerModal').style.display = 'flex'; }
-        function openSectorModal() { const list = document.getElementById('sectorListAdmin'); list.innerHTML = ''; Object.keys(data).forEach(s => { list
+        .search-item:hover { background: #f9fafb
