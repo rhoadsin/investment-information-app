@@ -13,10 +13,11 @@
             --toss-red: #f04452;
         }
 
-        body { font-family: 'Pretendard', sans-serif; background: var(--toss-bg); margin: 0; color: var(--toss-text-main); padding-bottom: 80px; }
+        body { font-family: 'Pretendard', sans-serif; background: var(--toss-bg); margin: 0; color: var(--toss-text-main); padding-bottom: 90px; }
 
         .app-header { padding: 24px 24px 10px 24px; background: var(--toss-bg); }
-        .app-header h1 { font-size: 24px; margin: 0 0 16px 0; font-weight: 700; }
+        .app-header h1 { font-size: 24px; margin: 0 0 16px 0; font-weight: 700; display: flex; justify-content: space-between; align-items: center;}
+        
         .sector-nav { display: flex; gap: 12px; overflow-x: auto; padding: 0 24px 15px 24px; scrollbar-width: none; }
         .sector-nav::-webkit-scrollbar { display: none; }
         .sector-tab { padding: 10px 18px; background: #fff; border-radius: 20px; font-size: 14px; font-weight: 600; color: var(--toss-text-sub); cursor: pointer; white-space: nowrap; border: 1px solid var(--toss-border); transition: 0.2s; }
@@ -31,7 +32,7 @@
         .delete-btn { color: #ccc; cursor: pointer; border: none; background: none; font-size: 18px; }
         .tv-widget { height: 250px; border-radius: 8px; overflow: hidden; background: #f9fafb; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #999;}
 
-        /* 뉴스 섹션 - <a> 태그용 스타일 수정 */
+        /* 뉴스 섹션 - 클릭 가능한 링크 디자인 */
         .news-card { background: var(--toss-card); border-radius: 16px; padding: 0 20px; }
         .news-item { padding: 16px 0; border-bottom: 1px solid var(--toss-border); text-decoration: none; display: block; transition: background-color 0.2s; }
         .news-item:hover { background-color: #f9fafb; }
@@ -63,7 +64,10 @@
 <body>
 
     <header class="app-header">
-        <h1>내 손안의 투자</h1>
+        <h1>
+            내 손안의 투자
+            <button onclick="resetApp()" style="font-size:12px; padding:4px 8px; border:1px solid #ccc; background:#fff; border-radius:6px; color:#666; cursor:pointer;">초기화</button>
+        </h1>
         <div id="refresh-time" style="font-size: 12px; color: var(--toss-text-sub); margin-bottom: 10px;"></div>
     </header>
 
@@ -109,6 +113,7 @@
 
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <script>
+        // 1. 초기 기본 데이터
         const defaultData = {
             "생성형AI": ["MSFT", "GOOGL", "NVDA"],
             "에이전틱AI": ["AMZN", "META", "PLTR"],
@@ -116,31 +121,49 @@
             "시장지수(ETF)": ["SPY", "QQQ", "069500"]
         };
 
+        // 2. 종목 및 ETF 마스터 DB
         const masterStockDB = [
-            // 미국/한국 대표 주식
             {n: "삼성전자", s: "005930", e: "KOSPI", t: "STOCK"}, {n: "SK하이닉스", s: "000660", e: "KOSPI", t: "STOCK"},
             {n: "현대차", s: "005380", e: "KOSPI", t: "STOCK"}, {n: "NAVER (네이버)", s: "035420", e: "KOSPI", t: "STOCK"},
             {n: "Apple (애플)", s: "AAPL", e: "NASDAQ", t: "STOCK"}, {n: "Tesla (테슬라)", s: "TSLA", e: "NASDAQ", t: "STOCK"},
             {n: "NVIDIA (엔비디아)", s: "NVDA", e: "NASDAQ", t: "STOCK"}, {n: "Microsoft", s: "MSFT", e: "NASDAQ", t: "STOCK"},
             {n: "Alphabet (구글)", s: "GOOGL", e: "NASDAQ", t: "STOCK"}, {n: "Meta (메타)", s: "META", e: "NASDAQ", t: "STOCK"},
-            
-            // 해외 ETF
             {n: "SPY (S&P 500)", s: "SPY", e: "NYSE", t: "ETF"}, {n: "QQQ (나스닥 100)", s: "QQQ", e: "NASDAQ", t: "ETF"},
             {n: "SCHD (배당 다우존스)", s: "SCHD", e: "NYSE", t: "ETF"}, {n: "SOXX (반도체)", s: "SOXX", e: "NASDAQ", t: "ETF"},
-            {n: "TQQQ (나스닥 3배)", s: "TQQQ", e: "NASDAQ", t: "ETF"}, {n: "SQQQ (나스닥 인버스)", s: "SQQQ", e: "NASDAQ", t: "ETF"},
-
-            // 국내 주요 ETF
             {n: "KODEX 200", s: "069500", e: "KRX", t: "ETF"}, {n: "KODEX 레버리지", s: "122630", e: "KRX", t: "ETF"},
             {n: "KODEX 2차전지산업", s: "305720", e: "KRX", t: "ETF"}, {n: "KODEX 반도체", s: "091160", e: "KRX", t: "ETF"},
             {n: "TIGER 미국나스닥100", s: "133690", e: "KRX", t: "ETF"}, {n: "TIGER 미국S&P500", s: "360200", e: "KRX", t: "ETF"},
-            {n: "TIGER 미국배당다우존스", s: "458730", e: "KRX", t: "ETF"}, {n: "TIGER 글로벌AI액티브", s: "466940", e: "KRX", t: "ETF"},
-            {n: "ACE 미국빅테크TOP7", s: "465580", e: "KRX", t: "ETF"}, {n: "SOL 미국배당다우존스", s: "446720", e: "KRX", t: "ETF"}
+            {n: "TIGER 미국배당다우존스", s: "458730", e: "KRX", t: "ETF"}, {n: "ACE 미국빅테크TOP7", s: "465580", e: "KRX", t: "ETF"}
         ];
 
-        let data = JSON.parse(localStorage.getItem('gem_invest_data')) || defaultData;
-        let currentSector = Object.keys(data)[0] || "생성형AI";
+        // 3. 강력한 데이터 복구 시스템 (빈 화면 방지)
+        let data = {};
+        try {
+            const localData = localStorage.getItem('gem_invest_data');
+            if (localData) {
+                data = JSON.parse(localData);
+                if (typeof data !== 'object' || Array.isArray(data) || Object.keys(data).length === 0) {
+                    data = JSON.parse(JSON.stringify(defaultData)); // 데이터가 비어있으면 원상복구
+                }
+            } else {
+                data = JSON.parse(JSON.stringify(defaultData));
+            }
+        } catch (e) {
+            data = JSON.parse(JSON.stringify(defaultData));
+        }
+
+        let currentSector = Object.keys(data)[0];
+
+        // 초기화 버튼용 함수
+        function resetApp() {
+            if(confirm("모든 데이터를 초기 설정으로 되돌리시겠습니까?")) {
+                localStorage.removeItem('gem_invest_data');
+                location.reload();
+            }
+        }
 
         function init() {
+            if (!currentSector) return; // 최후의 방어코드
             renderSectorNav();
             renderContent();
             updateTimeDisplay();
@@ -149,7 +172,8 @@
         function updateTimeDisplay() {
             const now = new Date();
             const timeStr = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            document.getElementById('refresh-time').innerText = `최근 동기화: 오늘 ${timeStr}`;
+            const elem = document.getElementById('refresh-time');
+            if(elem) elem.innerText = `최근 동기화: 오늘 ${timeStr}`;
         }
 
         function renderSectorNav() {
@@ -166,7 +190,7 @@
 
         function renderContent() {
             if(!currentSector) return;
-            document.getElementById('currentSectorName').innerText = `${currentSector} 차트`;
+            document.getElementById('currentSectorName').innerText = `${currentSector}`;
             renderCharts();
             loadNews();
             updateTimeDisplay();
@@ -177,7 +201,7 @@
             grid.innerHTML = '';
             
             if(!data[currentSector] || data[currentSector].length === 0) {
-                grid.innerHTML = '<div style="padding:20px; color:#999;">등록된 종목이 없습니다.</div>';
+                grid.innerHTML = '<div style="padding:20px; color:#999; grid-column: 1 / -1; text-align:center;">등록된 종목이 없습니다. 종목을 추가해보세요.</div>';
                 return;
             }
 
@@ -201,13 +225,15 @@
                 `;
                 grid.appendChild(card);
 
-                if (typeof TradingView !== 'undefined') {
-                    new TradingView.widget({
-                        "autosize": true, "symbol": symbol, "interval": "D", "timezone": "Asia/Seoul",
-                        "theme": "light", "style": "2", "locale": "kr", "container_id": widgetId,
-                        "hide_top_toolbar": true, "hide_legend": true, "save_image": false
-                    });
-                }
+                try {
+                    if (typeof TradingView !== 'undefined') {
+                        new TradingView.widget({
+                            "autosize": true, "symbol": symbol, "interval": "D", "timezone": "Asia/Seoul",
+                            "theme": "light", "style": "2", "locale": "kr", "container_id": widgetId,
+                            "hide_top_toolbar": true, "hide_legend": true, "save_image": false
+                        });
+                    }
+                } catch(err) { console.log('Chart load error', err); }
             });
         }
 
@@ -232,7 +258,7 @@
                 });
                 resultsContainer.style.display = 'block';
             } else {
-                resultsContainer.innerHTML = '<div style="padding:15px; color:#999; font-size:14px; text-align:center;">검색 결과가 없습니다.<br><br>직접 코드 입력: <button onclick="addSymbolToSector(\''+query.toUpperCase()+'\')" style="padding:5px 10px; background:var(--toss-blue); color:#fff; border:none; border-radius:5px; margin-top:5px;">'+query.toUpperCase()+' 추가</button></div>';
+                resultsContainer.innerHTML = '<div style="padding:15px; color:#999; font-size:14px; text-align:center;">검색 결과가 없습니다.<br><br><button onclick="addSymbolToSector(\''+query.toUpperCase()+'\')" style="padding:5px 10px; background:var(--toss-blue); color:#fff; border:none; border-radius:5px; margin-top:5px;">직접 추가하기</button></div>';
                 resultsContainer.style.display = 'block';
             }
         });
@@ -242,8 +268,125 @@
                 data[currentSector].push(symbol); saveData(); renderContent(); closeModal('tickerModal');
             } else { alert('이미 추가된 종목입니다.'); }
         }
-        function removeTicker(ticker) { data[currentSector] = data[currentSector].filter(t => t !== ticker); saveData(); renderContent(); }
-        function openAddTickerModal() { document.getElementById('targetSectorHint').innerText = `[${currentSector}] 섹터에 추가`; document.getElementById('tickerSearchInput').value = ''; document.getElementById('searchResults').style.display = 'none'; document.getElementById('tickerModal').style.display = 'flex'; setTimeout(() => document.getElementById('tickerSearchInput').focus(), 100); }
-        function openSectorModal() { const list = document.getElementById('sectorListAdmin'); list.innerHTML = ''; Object.keys(data).forEach(s => { list.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #eee;"><span style="font-weight:600;">${s}</span><button onclick="deleteSector('${s}')" style="color:var(--toss-red); border:none; background:none; font-weight:600; cursor:pointer;">삭제</button></div>`; }); document.getElementById('sectorModal').style.display = 'flex'; }
-        function addSector() { const name = document.getElementById('newSectorName').value.trim(); if (name && !data[name]) { data[name] = []; saveData(); renderSectorNav(); closeModal('sectorModal'); document.getElementById('newSectorName').value = ''; } }
-        function deleteSector(s) { if(confirm(`'${s}' 섹터를 삭제하시겠습니까?`)) { delete data[s]; currentSector = Object.keys(data)[0] || null;
+        
+        function removeTicker(ticker) { 
+            data[currentSector] = data[currentSector].filter(t => t !== ticker); 
+            saveData(); 
+            renderContent(); 
+        }
+        
+        function openAddTickerModal() { 
+            document.getElementById('targetSectorHint').innerText = `[${currentSector}] 섹터에 추가`; 
+            document.getElementById('tickerSearchInput').value = ''; 
+            document.getElementById('searchResults').style.display = 'none'; 
+            document.getElementById('tickerModal').style.display = 'flex'; 
+        }
+        
+        function openSectorModal() { 
+            const list = document.getElementById('sectorListAdmin'); 
+            list.innerHTML = ''; 
+            Object.keys(data).forEach(s => { 
+                list.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #eee;"><span style="font-weight:600;">${s}</span><button onclick="deleteSector('${s}')" style="color:var(--toss-red); border:none; background:none; font-weight:600; cursor:pointer;">삭제</button></div>`; 
+            }); 
+            document.getElementById('sectorModal').style.display = 'flex'; 
+        }
+        
+        function addSector() { 
+            const name = document.getElementById('newSectorName').value.trim(); 
+            if (name && !data[name]) { 
+                data[name] = []; 
+                saveData(); 
+                currentSector = name; // 추가한 섹터로 즉시 이동
+                renderSectorNav(); 
+                renderContent();
+                closeModal('sectorModal'); 
+                document.getElementById('newSectorName').value = ''; 
+            } 
+        }
+        
+        function deleteSector(s) { 
+            if(confirm(`'${s}' 섹터를 삭제하시겠습니까?`)) { 
+                delete data[s]; 
+                currentSector = Object.keys(data)[0] || null; 
+                saveData(); 
+                
+                // 만약 모든 섹터를 지웠다면 기본 데이터로 강제 복구 (빈 화면 방지)
+                if(!currentSector) {
+                    alert("모든 섹터가 삭제되어 기본 설정으로 복구합니다.");
+                    data = JSON.parse(JSON.stringify(defaultData));
+                    currentSector = Object.keys(data)[0];
+                    saveData();
+                }
+
+                renderSectorNav(); 
+                openSectorModal(); 
+                renderContent();
+            } 
+        }
+        
+        function closeModal(id) { 
+            document.getElementById(id).style.display = 'none'; 
+            if(id === 'tickerModal') { document.getElementById('searchResults').style.display = 'none'; document.getElementById('tickerSearchInput').value = ''; } 
+        }
+        
+        function saveData() { localStorage.setItem('gem_invest_data', JSON.stringify(data)); }
+
+        // --- 구글 뉴스 검색 링크 완벽 연동 ---
+        function loadNews() {
+            updateTimeDisplay();
+            const container = document.getElementById('newsContainer');
+            container.innerHTML = '<div style="text-align:center; padding:30px; color:#aaa; font-size:14px;">실시간 뉴스를 불러오는 중...</div>';
+            
+            setTimeout(() => {
+                let mockNews = [];
+                if (currentSector.includes("AI")) {
+                    mockNews = [
+                        { title: `"엔비디아 잡아라"… 빅테크, AI 칩 자체 개발 속도전`, source: '글로벌경제', time: '방금 전' },
+                        { title: `월가 "생성형 AI 시장, 내년 2배 성장 전망"`, source: '투자동향', time: '10분 전' },
+                        { title: `마이크로소프트, AI 서비스 전면 개편… 주가 급등`, source: '글로벌 파이낸스', time: '1시간 전' }
+                    ];
+                } else if (currentSector.includes("ETF") || currentSector.includes("지수")) {
+                    mockNews = [
+                        { title: `S&P500 최고치 경신… 기술주 주도 상승 랠리`, source: '마켓와치', time: '15분 전' },
+                        { title: `개미들 나스닥 ETF 대거 매수… 레버리지 쏠림 심화`, source: '투자동향', time: '40분 전' },
+                        { title: `금리 인하 기대감에 배당 ETF 자금 유입 지속`, source: '글로벌 파이낸스', time: '2시간 전' }
+                    ];
+                } else {
+                    mockNews = [
+                        { title: `${currentSector} 관련 기업, 깜짝 실적 발표에 강세`, source: '글로벌경제', time: '방금 전' },
+                        { title: `외인·기관, ${currentSector} 대형주 동반 순매수`, source: '투자동향', time: '30분 전' },
+                        { title: `전문가들 "${currentSector} 하반기 주도주 부상할 것"`, source: '글로벌 파이낸스', time: '1시간 전' }
+                    ];
+                }
+
+                let htmlString = '';
+                mockNews.forEach(news => {
+                    // 기사 제목을 그대로 구글 뉴스 탭에 꽂아버리는 완벽한 링크 생성
+                    const exactSearchQuery = encodeURIComponent(news.title);
+                    const googleNewsUrl = `https://www.google.com/search?q=${exactSearchQuery}&tbm=nws`;
+
+                    htmlString += `
+                        <a href="${googleNewsUrl}" target="_blank" class="news-item">
+                            <div style="display:flex; align-items:center;">
+                                <div class="news-tag">#${currentSector}</div>
+                                <div class="news-tag-google">G</div>
+                            </div>
+                            <h4 class="news-title">${news.title}</h4>
+                            <div class="news-info">
+                                <span>${news.source} · ${news.time}</span>
+                                <span class="news-link-icon">구글 뉴스에서 열기 ↗</span>
+                            </div>
+                        </a>
+                    `;
+                });
+                
+                // 화면에 렌더링
+                container.innerHTML = htmlString;
+            }, 300);
+        }
+
+        // 앱 시작
+        window.onload = init;
+    </script>
+</body>
+</html>
