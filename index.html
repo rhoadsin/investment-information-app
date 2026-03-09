@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>투자조언 GEM - 대시보드</title>
+    <title>내 손안의 투자 - 대시보드</title>
     <style>
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
         
@@ -16,7 +16,7 @@
         body { font-family: 'Pretendard', sans-serif; background: var(--toss-bg); margin: 0; color: var(--toss-text-main); padding-bottom: 80px; }
 
         .app-header { padding: 24px 24px 10px 24px; background: var(--toss-bg); }
-        .app-header h1 { font-size: 22px; margin: 0 0 16px 0; }
+        .app-header h1 { font-size: 24px; margin: 0 0 16px 0; font-weight: 700; }
         .sector-nav { display: flex; gap: 12px; overflow-x: auto; padding: 0 24px 15px 24px; scrollbar-width: none; }
         .sector-nav::-webkit-scrollbar { display: none; }
         .sector-tab { padding: 10px 18px; background: #fff; border-radius: 20px; font-size: 14px; font-weight: 600; color: var(--toss-text-sub); cursor: pointer; white-space: nowrap; border: 1px solid var(--toss-border); transition: 0.2s; }
@@ -31,17 +31,17 @@
         .delete-btn { color: #ccc; cursor: pointer; border: none; background: none; font-size: 18px; }
         .tv-widget { height: 250px; border-radius: 8px; overflow: hidden; background: #f9fafb; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #999;}
 
-        /* 뉴스 섹션 개선 */
+        /* 뉴스 섹션 - <a> 태그용 스타일 수정 */
         .news-card { background: var(--toss-card); border-radius: 16px; padding: 0 20px; }
-        .news-item { padding: 16px 0; border-bottom: 1px solid var(--toss-border); cursor: pointer; transition: background-color 0.2s; }
+        .news-item { padding: 16px 0; border-bottom: 1px solid var(--toss-border); text-decoration: none; display: block; transition: background-color 0.2s; }
         .news-item:hover { background-color: #f9fafb; }
         .news-item:active { background-color: #f2f4f6; }
         .news-item:last-child { border-bottom: none; }
         .news-tag { font-size: 11px; color: var(--toss-blue); font-weight: 700; margin-bottom: 6px; display: inline-block;}
         .news-tag-google { font-size: 10px; color: #fff; background-color: #ea4335; padding: 2px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle;}
-        .news-title { font-size: 15px; font-weight: 600; line-height: 1.4; color: var(--toss-text-main); }
+        .news-title { font-size: 15px; font-weight: 600; line-height: 1.4; color: var(--toss-text-main); margin: 0; }
         .news-info { font-size: 12px; color: var(--toss-text-sub); margin-top: 8px; display: flex; justify-content: space-between; }
-        .news-link-icon { color: var(--toss-blue); font-size: 11px; }
+        .news-link-icon { color: var(--toss-blue); font-size: 11px; font-weight: 600; }
 
         .admin-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 1000; }
         .fab { background: var(--toss-text-main); color: #fff; padding: 12px 20px; border-radius: 30px; font-size: 14px; font-weight: 600; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; }
@@ -63,7 +63,7 @@
 <body>
 
     <header class="app-header">
-        <h1>투자조언 GEM</h1>
+        <h1>내 손안의 투자</h1>
         <div id="refresh-time" style="font-size: 12px; color: var(--toss-text-sub); margin-bottom: 10px;"></div>
     </header>
 
@@ -129,7 +129,7 @@
             {n: "SCHD (배당 다우존스)", s: "SCHD", e: "NYSE", t: "ETF"}, {n: "SOXX (반도체)", s: "SOXX", e: "NASDAQ", t: "ETF"},
             {n: "TQQQ (나스닥 3배)", s: "TQQQ", e: "NASDAQ", t: "ETF"}, {n: "SQQQ (나스닥 인버스)", s: "SQQQ", e: "NASDAQ", t: "ETF"},
 
-            // 국내 주요 ETF (KODEX, TIGER, ACE 등)
+            // 국내 주요 ETF
             {n: "KODEX 200", s: "069500", e: "KRX", t: "ETF"}, {n: "KODEX 레버리지", s: "122630", e: "KRX", t: "ETF"},
             {n: "KODEX 2차전지산업", s: "305720", e: "KRX", t: "ETF"}, {n: "KODEX 반도체", s: "091160", e: "KRX", t: "ETF"},
             {n: "TIGER 미국나스닥100", s: "133690", e: "KRX", t: "ETF"}, {n: "TIGER 미국S&P500", s: "360200", e: "KRX", t: "ETF"},
@@ -246,66 +246,4 @@
         function openAddTickerModal() { document.getElementById('targetSectorHint').innerText = `[${currentSector}] 섹터에 추가`; document.getElementById('tickerSearchInput').value = ''; document.getElementById('searchResults').style.display = 'none'; document.getElementById('tickerModal').style.display = 'flex'; setTimeout(() => document.getElementById('tickerSearchInput').focus(), 100); }
         function openSectorModal() { const list = document.getElementById('sectorListAdmin'); list.innerHTML = ''; Object.keys(data).forEach(s => { list.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #eee;"><span style="font-weight:600;">${s}</span><button onclick="deleteSector('${s}')" style="color:var(--toss-red); border:none; background:none; font-weight:600; cursor:pointer;">삭제</button></div>`; }); document.getElementById('sectorModal').style.display = 'flex'; }
         function addSector() { const name = document.getElementById('newSectorName').value.trim(); if (name && !data[name]) { data[name] = []; saveData(); renderSectorNav(); closeModal('sectorModal'); document.getElementById('newSectorName').value = ''; } }
-        function deleteSector(s) { if(confirm(`'${s}' 섹터를 삭제하시겠습니까?`)) { delete data[s]; currentSector = Object.keys(data)[0] || null; saveData(); renderSectorNav(); openSectorModal(); if(currentSector) renderContent(); else document.getElementById('chartGrid').innerHTML = ''; } }
-        function closeModal(id) { document.getElementById(id).style.display = 'none'; if(id === 'tickerModal') { document.getElementById('searchResults').style.display = 'none'; document.getElementById('tickerSearchInput').value = ''; } }
-        function saveData() { localStorage.setItem('gem_invest_data', JSON.stringify(data)); }
-
-        // --- 4. 뉴스 로직 (구글 검색 + 정확한 기사 제목 연동) ---
-        function loadNews() {
-            updateTimeDisplay();
-            const container = document.getElementById('newsContainer');
-            container.innerHTML = '<div style="text-align:center; padding:30px; color:#aaa; font-size:14px;">실시간 뉴스를 불러오는 중...</div>';
-            
-            setTimeout(() => {
-                container.innerHTML = '';
-                
-                // 모의 뉴스 데이터 세팅 (실제 기사 제목처럼 구체적으로 작성)
-                // 추후 실제 API 연동 시 이 배열이 진짜 뉴스 데이터로 교체됩니다.
-                let mockNews = [];
-                if (currentSector.includes("AI")) {
-                    mockNews = [
-                        { title: `"엔비디아 잡아라"… 빅테크, AI 칩 자체 개발 속도전`, source: '글로벌경제', time: '방금 전' },
-                        { title: `월가 "생성형 AI 시장, 내년 2배 성장 전망"`, source: '투자동향', time: '10분 전' },
-                        { title: `마이크로소프트, AI 서비스 전면 개편… 주가 시간외 급등`, source: 'GEM 파이낸스', time: '1시간 전' }
-                    ];
-                } else if (currentSector.includes("ETF") || currentSector.includes("지수")) {
-                    mockNews = [
-                        { title: `S&P500 최고치 경신… 기술주 주도 상승 랠리`, source: '마켓와치', time: '15분 전' },
-                        { title: `개미들 나스닥 ETF 대거 매수… 레버리지 쏠림 심화`, source: '투자동향', time: '40분 전' },
-                        { title: `금리 인하 기대감에 배당 ETF 자금 유입 지속`, source: 'GEM 파이낸스', time: '2시간 전' }
-                    ];
-                } else {
-                    mockNews = [
-                        { title: `${currentSector} 관련 기업, 깜짝 실적 발표에 강세`, source: '글로벌경제', time: '방금 전' },
-                        { title: `외인·기관, ${currentSector} 대형주 동반 순매수`, source: '투자동향', time: '30분 전' },
-                        { title: `전문가들 "${currentSector} 하반기 주도주 부상할 것"`, source: 'GEM 파이낸스', time: '1시간 전' }
-                    ];
-                }
-
-                mockNews.forEach(news => {
-                    // 구글 '뉴스' 탭 검색을 위한 URL 생성 (파라미터: &tbm=nws)
-                    // 정확도를 높이기 위해 뉴스 제목 자체를 인코딩하여 검색어로 넣습니다.
-                    const exactSearchQuery = encodeURIComponent(news.title);
-                    const googleNewsUrl = `https://www.google.com/search?q=${exactSearchQuery}&tbm=nws`;
-
-                    container.innerHTML += `
-                        <div class="news-item" onclick="window.open('${googleNewsUrl}', '_blank')">
-                            <div style="display:flex; align-items:center;">
-                                <div class="news-tag">#${currentSector}</div>
-                                <div class="news-tag-google">G</div>
-                            </div>
-                            <div class="news-title">${news.title}</div>
-                            <div class="news-info">
-                                <span>${news.source} · ${news.time}</span>
-                                <span class="news-link-icon">구글에서 보기 ↗</span>
-                            </div>
-                        </div>
-                    `;
-                });
-            }, 300);
-        }
-
-        window.onload = init;
-    </script>
-</body>
-</html>
+        function deleteSector(s) { if(confirm(`'${s}' 섹터를 삭제하시겠습니까?`)) { delete data[s]; currentSector = Object.keys(data)[0] || null;
