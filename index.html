@@ -25,7 +25,6 @@
         .btn-danger { font-size:13px; padding:8px 14px; border:1px solid #ccc; background:#fff; border-radius:6px; color:#999; cursor:pointer; font-weight:600; transition: 0.2s;}
         .btn-danger:hover { color: var(--toss-red); border-color: var(--toss-red); }
         
-        /* 클라우드 상태 표시기 */
         .cloud-status { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--toss-blue); background: #e8f3ff; padding: 6px 12px; border-radius: 20px;}
         .cloud-status.syncing { color: #f5a623; background: #fff4e6; }
         .cloud-status.error { color: var(--toss-red); background: #fce4e4; }
@@ -87,6 +86,9 @@
         
         .modal-close-btn { background: none; border: none; font-size: 24px; color: #999; cursor: pointer; line-height: 1; padding: 0; transition: color 0.2s; }
         .modal-close-btn:hover { color: #333; }
+        
+        .move-btn { border: 1px solid #e5e8eb; background: #fff; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; color: #666; transition: 0.2s;}
+        .move-btn:hover { background: #f2f4f6; color: #111; }
     </style>
 
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -97,10 +99,10 @@
 
 <div class="app-wrapper">
     <header class="app-header">
-        <h1>내 손안의 투자 <span class="badge-ver">PC v12.0 (Google Cloud 동기화)</span></h1>
+        <h1>내 손안의 투자 <span class="badge-ver">PC v12.1 (섹터 이름 수정)</span></h1>
         
         <div class="header-buttons">
-            <div id="cloudStatus" class="cloud-status">☁️ 클라우드 연결 중...</div>
+            <div id="cloudStatus" class="cloud-status">☁️ 연결 대기중</div>
             <button type="button" onclick="openSectorModal()" class="btn-primary">📁 섹터 관리</button>
             <button type="button" onclick="resetCloudData()" class="btn-danger" title="클라우드 데이터를 초기화합니다.">데이터 초기화</button>
         </div>
@@ -159,7 +161,7 @@
 
     <script>
         // ==============================================================
-        // 🚨 중요: 여기에 방금 구글 파이어베이스에서 복사한 설정 코드를 넣으세요!
+        // 🚨 여기에 사용자님의 구글 파이어베이스 설정값을 붙여넣어 주세요!
         // ==============================================================
         const firebaseConfig = {
             apiKey: "AIzaSyDtwh9e5_n7oY-tkNkUG658XXYeXLLNRq8",
@@ -171,11 +173,8 @@
         };
         // ==============================================================
 
-        // Firebase 초기화
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        
-        // 내 데이터를 저장할 고유 문서 ID (나만의 클라우드 공간 이름)
         const MY_CLOUD_DOC_ID = "my_personal_dashboard_data";
 
         const defaultData = {
@@ -207,7 +206,6 @@
             indicator.innerHTML = text;
         }
 
-        // --- 클라우드(구글 파이어베이스)에서 데이터 불러오기 ---
         async function fetchCloudData() {
             try {
                 const docRef = db.collection("dashboards").doc(MY_CLOUD_DOC_ID);
@@ -219,19 +217,15 @@
                     customNames = cloudData.customNames || {};
                     setCloudStatus('success', '☁️ 클라우드 동기화 완료');
                 } else {
-                    // 데이터가 아예 없으면 기본 데이터로 세팅하고 클라우드에 최초 저장
                     data = JSON.parse(JSON.stringify(defaultData));
                     customNames = {};
                     await saveToCloud();
                 }
-                
                 currentSector = Object.keys(data)[0];
                 renderSectorNav();
                 renderContent();
             } catch (error) {
-                console.error("클라우드 통신 에러:", error);
                 setCloudStatus('error', '⚠️ 파이어베이스 설정 확인 필요');
-                // 에러 시 로컬 메모리 모드로 임시 작동
                 data = JSON.parse(JSON.stringify(defaultData));
                 currentSector = Object.keys(data)[0];
                 renderSectorNav();
@@ -239,7 +233,6 @@
             }
         }
 
-        // --- 클라우드(구글 파이어베이스)로 데이터 실시간 저장하기 ---
         async function saveToCloud() {
             setCloudStatus('syncing', '☁️ 저장 중...');
             try {
@@ -250,7 +243,6 @@
                 });
                 setCloudStatus('success', '☁️ 클라우드 저장 완료');
             } catch (error) {
-                console.error("저장 에러:", error);
                 setCloudStatus('error', '⚠️ 클라우드 저장 실패');
             }
         }
@@ -267,13 +259,7 @@
             } 
         }
 
-        // 앱 시작 지점
-        document.addEventListener('DOMContentLoaded', () => {
-            // HTML이 로딩되면 곧바로 클라우드 데이터를 끌어옵니다.
-            fetchCloudData();
-        });
-
-        // ------------------ 이하 UI 렌더링 로직 ------------------
+        document.addEventListener('DOMContentLoaded', () => { fetchCloudData(); });
 
         function renderSectorNav() {
             const nav = document.getElementById('sectorNav');
@@ -297,14 +283,10 @@
 
         window.renameTicker = function(ticker, currentDisplayName) {
             const newName = prompt(`[${ticker}]의 새로운 표시 이름(뉴스 검색 키워드로 사용됨)을 입력하세요:\n(기본값으로 되돌리려면 빈칸으로 두고 확인을 누르세요)`, currentDisplayName);
-            
             if (newName !== null) {
-                if (newName.trim() === '') {
-                    delete customNames[ticker];
-                } else {
-                    customNames[ticker] = newName.trim();
-                }
-                saveToCloud(); // 이름 변경 후 클라우드 저장
+                if (newName.trim() === '') delete customNames[ticker];
+                else customNames[ticker] = newName.trim();
+                saveToCloud(); 
                 renderContent(); 
             }
         };
@@ -320,7 +302,7 @@
             arr[idx] = arr[newIdx];
             arr[newIdx] = temp;
             
-            saveToCloud(); // 순서 변경 후 클라우드 저장
+            saveToCloud(); 
             renderContent(); 
         };
 
@@ -441,11 +423,46 @@
                         ${upBtn} ${downBtn}
                         <span style="font-weight:600; font-size:15px; margin-left:8px;">${s}</span>
                     </div>
-                    <button type="button" onclick="deleteSector('${s}')" style="color:var(--toss-red); border:none; background:none; font-weight:600; cursor:pointer;">삭제</button>
+                    <div style="display:flex; gap:8px;">
+                        <button type="button" onclick="renameSector('${s}')" style="color:var(--toss-blue); border:none; background:none; font-weight:600; cursor:pointer;">수정</button>
+                        <button type="button" onclick="deleteSector('${s}')" style="color:var(--toss-red); border:none; background:none; font-weight:600; cursor:pointer;">삭제</button>
+                    </div>
                 </div>`; 
             }); 
             document.getElementById('sectorModal').style.display = 'flex'; 
         }
+
+        // --- 1. 섹터 이름(탭 이름) 변경 핵심 로직 ---
+        window.renameSector = function(oldName) {
+            const newName = prompt(`[${oldName}] 탭의 새로운 이름을 입력하세요:`, oldName);
+            if (!newName || newName.trim() === '' || newName.trim() === oldName) return;
+
+            const trimmedName = newName.trim();
+            if (data[trimmedName]) {
+                alert('이미 존재하는 섹터 이름입니다.');
+                return;
+            }
+
+            // 기존 순서를 유지하면서 Key 이름만 변경하기 위해 객체 재조립
+            const newData = {};
+            Object.keys(data).forEach(key => {
+                if (key === oldName) {
+                    newData[trimmedName] = data[key];
+                } else {
+                    newData[key] = data[key];
+                }
+            });
+            data = newData;
+
+            if (currentSector === oldName) {
+                currentSector = trimmedName;
+            }
+
+            saveToCloud(); 
+            openSectorModal(); 
+            renderSectorNav(); 
+            renderContent(); // 탭 이름이 바뀌었으므로, 뉴스 소싱 시 바뀐 이름을 참조함
+        };
 
         function moveSector(sectorName, direction) {
             const keys = Object.keys(data);
@@ -471,12 +488,15 @@
         function deleteSector(s) { if(confirm(`'${s}' 섹터를 삭제하시겠습니까?`)) { delete data[s]; currentSector = Object.keys(data)[0] || null; saveToCloud().then(() => { if(!currentSector) { resetCloudData(); } renderSectorNav(); openSectorModal(); renderContent(); }); } }
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
+        // --- 2. 수정된 섹터 이름을 반영한 뉴스 로직 ---
         function loadNews() {
             const container = document.getElementById('newsContainer');
             const timeframeValue = document.getElementById('newsTimeframe').value; 
             const timeParam = timeframeValue.replace('d','w').replace('30d','m').replace('1y','y'); 
             
             const tickers = data[currentSector] || [];
+            
+            // 맨 처음 키워드로 "현재 수정된 섹터 이름"이 자동으로 들어감
             const keywords = [currentSector]; 
             
             tickers.forEach(t => {
