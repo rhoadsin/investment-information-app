@@ -82,10 +82,13 @@
         .badge-etf { background-color: #e8f3ff; color: var(--toss-blue); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; margin-left: 8px; }
         .badge-lme { background-color: #fce4e4; color: var(--toss-red); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; margin-left: 8px; }
         .badge-gold { background-color: #fff4e6; color: #f5a623; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; margin-left: 8px; }
-        .badge-ver { font-size: 12px; background: var(--toss-blue); color: #fff; padding: 4px 8px; border-radius: 6px; font-weight: 600; }
+        .badge-ver { font-size: 12px; background: var(--toss-text-main); color: #fff; padding: 4px 8px; border-radius: 6px; font-weight: 600; }
         
         .modal-close-btn { background: none; border: none; font-size: 24px; color: #999; cursor: pointer; line-height: 1; padding: 0; transition: color 0.2s; }
         .modal-close-btn:hover { color: #333; }
+        
+        .move-btn { border: 1px solid #e5e8eb; background: #fff; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; color: #666; transition: 0.2s;}
+        .move-btn:hover { background: #f2f4f6; color: #111; }
     </style>
 
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -96,7 +99,7 @@
 
 <div class="app-wrapper">
     <header class="app-header">
-        <h1>내 손안의 투자 <span class="badge-ver">PC v12.2 (UX 완전체)</span></h1>
+        <h1>내 손안의 투자 <span class="badge-ver">PC v12.3 (순서 고정 완벽)</span></h1>
         
         <div class="header-buttons">
             <div id="cloudStatus" class="cloud-status">☁️ 연결 대기중</div>
@@ -150,7 +153,7 @@
             </div>
             <p id="targetSectorHint" style="font-size: 14px; color: var(--toss-blue); font-weight:600; margin-top: 15px;"></p>
             <div style="position: relative;">
-                <input type="text" id="tickerSearchInput" class="input-field" placeholder="기업명, 티커 직접 입력(VRT, BE 등)" autocomplete="off">
+                <input type="text" id="tickerSearchInput" class="input-field" placeholder="기업명, 티커 직접 입력(VRT 등)" autocomplete="off">
                 <div id="searchResults" class="search-results"></div>
             </div>
         </div>
@@ -190,10 +193,11 @@
             {n: "삼성전자", s: "005930", e: "KOSPI", t: "STOCK"}, {n: "SK하이닉스", s: "000660", e: "KOSPI", t: "STOCK"}, {n: "현대차", s: "005380", e: "KOSPI", t: "STOCK"}, {n: "NAVER", s: "035420", e: "KOSPI", t: "STOCK"},
             {n: "Apple", s: "AAPL", e: "NASDAQ", t: "STOCK"}, {n: "Tesla", s: "TSLA", e: "NASDAQ", t: "STOCK"}, {n: "NVIDIA", s: "NVDA", e: "NASDAQ", t: "STOCK"}, {n: "Microsoft", s: "MSFT", e: "NASDAQ", t: "STOCK"}, {n: "Alphabet", s: "GOOGL", e: "NASDAQ", t: "STOCK"}, {n: "Meta", s: "META", e: "NASDAQ", t: "STOCK"}, {n: "Palantir", s: "PLTR", e: "NYSE", t: "STOCK"}, {n: "ASML", s: "ASML", e: "NASDAQ", t: "STOCK"}, {n: "Amazon", s: "AMZN", e: "NASDAQ", t: "STOCK"}, 
             {n: "SPY", s: "SPY", e: "NYSE", t: "ETF"}, {n: "QQQ", s: "QQQ", e: "NASDAQ", t: "ETF"}, {n: "KODEX 200", s: "069500", e: "KRX", t: "ETF"}, {n: "KODEX 레버리지", s: "122630", e: "KRX", t: "ETF"},
-            {n: "TIGER 미국나스닥100", s: "133690", e: "KRX", t: "ETF"}, {n: "TIGER 미국S&P500", s: "360200", e: "KRX", t: "ETF"}, {n: "TIGER 미국배당다우존스", s: "458730", e: "KRX", t: "ETF"}
+            {n: "TIGER 미국나스닥100", s: "133690", e: "KRX", t: "ETF"}, {n: "TIGER 미국S&P500", s: "360200", e: "KRX", t: "ETF"}, {n: "TIGER 미국배당다우존스", s: "458730", e: "KRX", t: "ETF"}, {n: "Bloom Energy", s: "BE", e: "NYSE", t: "STOCK"}
         ];
 
         let data = {};
+        let sectorOrder = []; // [핵심] 섹터 순서를 절대적으로 보장하는 전용 명부 배열
         let currentSector = null;
         let customNames = {}; 
         
@@ -211,20 +215,32 @@
                 if (doc.exists) {
                     const cloudData = doc.data();
                     data = cloudData.sectors || JSON.parse(JSON.stringify(defaultData));
+                    
+                    // 클라우드에 순서 명부가 저장되어 있으면 그것을 쓰고, 없으면 방어 코드로 기본 키들을 가져옵니다.
+                    sectorOrder = cloudData.sectorOrder || Object.keys(data);
+                    
+                    // 혹시 데이터 갯수와 순서 명부 갯수가 꼬였을 경우의 2차 방어막
+                    if(sectorOrder.length !== Object.keys(data).length) {
+                        sectorOrder = Object.keys(data);
+                    }
+                    
                     customNames = cloudData.customNames || {};
                     setCloudStatus('success', '☁️ 클라우드 동기화 완료');
                 } else {
                     data = JSON.parse(JSON.stringify(defaultData));
+                    sectorOrder = Object.keys(data); // 기본 순서 저장
                     customNames = {};
                     await saveToCloud();
                 }
-                currentSector = Object.keys(data)[0];
+                
+                currentSector = sectorOrder.length > 0 ? sectorOrder[0] : null;
                 renderSectorNav();
                 renderContent();
             } catch (error) {
                 setCloudStatus('error', '⚠️ 파이어베이스 설정 확인 필요');
                 data = JSON.parse(JSON.stringify(defaultData));
-                currentSector = Object.keys(data)[0];
+                sectorOrder = Object.keys(data);
+                currentSector = sectorOrder[0];
                 renderSectorNav();
                 renderContent();
             }
@@ -235,6 +251,7 @@
             try {
                 await db.collection("dashboards").doc(MY_CLOUD_DOC_ID).set({
                     sectors: data,
+                    sectorOrder: sectorOrder, // [핵심] 데이터를 저장할 때 무조건 순서 명부도 함께 저장
                     customNames: customNames,
                     lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
                 });
@@ -247,9 +264,10 @@
         function resetCloudData() { 
             if(confirm("클라우드에 저장된 모든 데이터를 초기화하시겠습니까?")) { 
                 data = JSON.parse(JSON.stringify(defaultData));
+                sectorOrder = Object.keys(data);
                 customNames = {};
                 saveToCloud().then(() => {
-                    currentSector = Object.keys(data)[0];
+                    currentSector = sectorOrder[0];
                     renderSectorNav();
                     renderContent();
                 });
@@ -258,11 +276,14 @@
 
         document.addEventListener('DOMContentLoaded', () => { fetchCloudData(); });
 
+        // [핵심] 탭을 렌더링 할 때 파이어베이스 객체가 아닌 '순서 명부(sectorOrder)'를 기준으로 그림
         function renderSectorNav() {
             const nav = document.getElementById('sectorNav');
             nav.innerHTML = '';
-            if(!data) return;
-            Object.keys(data).forEach(sector => {
+            if(!data || !sectorOrder) return;
+            
+            sectorOrder.forEach(sector => {
+                if(!data[sector]) return; // 안전장치
                 const btn = document.createElement('div');
                 btn.className = `sector-tab ${sector === currentSector ? 'active' : ''}`;
                 btn.innerText = sector;
@@ -278,16 +299,7 @@
             loadNews();
         }
 
-        window.renameTicker = function(ticker, currentDisplayName) {
-            const newName = prompt(`[${ticker}]의 새로운 표시 이름(뉴스 검색 키워드로 사용됨)을 입력하세요:\n(기본값으로 되돌리려면 빈칸으로 두고 확인을 누르세요)`, currentDisplayName);
-            if (newName !== null) {
-                if (newName.trim() === '') delete customNames[ticker];
-                else customNames[ticker] = newName.trim();
-                saveToCloud(); 
-                renderContent(); 
-            }
-        };
-
+        // 종목별 차트 이동 로직
         window.moveChart = function(ticker, direction) {
             const arr = data[currentSector];
             const idx = arr.indexOf(ticker);
@@ -301,6 +313,16 @@
             
             saveToCloud(); 
             renderContent(); 
+        };
+
+        window.renameTicker = function(ticker, currentDisplayName) {
+            const newName = prompt(`[${ticker}]의 새로운 표시 이름(뉴스 검색 키워드로 사용됨)을 입력하세요:\n(기본값으로 되돌리려면 빈칸으로 두고 확인을 누르세요)`, currentDisplayName);
+            if (newName !== null) {
+                if (newName.trim() === '') delete customNames[ticker];
+                else customNames[ticker] = newName.trim();
+                saveToCloud(); 
+                renderContent(); 
+            }
         };
 
         window.changeKrxChart = function(ticker, period, btnElement) {
@@ -347,7 +369,6 @@
                     </div>`;
 
                 if (/^\d{6}$/.test(ticker)) {
-                    // [핵심 변경] 네이버 증권으로 바로가는 링크 추가 복구
                     cardHtml += `
                         <div style="display:flex; gap:8px; margin-bottom:15px; justify-content:center;">
                             <button type="button" class="krx-btn active" onclick="changeKrxChart('${ticker}', 'day', this)">1일</button>
@@ -382,7 +403,6 @@
             });
         }
 
-        // [핵심 변경] 검색 결과 유무와 상관없이 '수동 티커 추가' 버튼 항상 띄우기
         document.getElementById('tickerSearchInput').addEventListener('input', function(e) { 
             const query = e.target.value.trim().toLowerCase(); 
             const resultsContainer = document.getElementById('searchResults'); 
@@ -408,7 +428,6 @@
                     resultsContainer.appendChild(div); 
                 }); 
 
-                // 검색 결과가 있더라도 맨 밑에 '수동 추가 버튼'을 무조건 생성
                 const manualDiv = document.createElement('div');
                 manualDiv.style.cssText = "padding:12px; text-align:center; border-top:1px solid #eee; background:#f9fafb;";
                 manualDiv.innerHTML = `<button type="button" onclick="addSymbolToSector('${query.toUpperCase()}')" style="padding:6px 16px; background:var(--toss-text-main); color:#fff; border:none; border-radius:4px; cursor:pointer; font-weight:600;">찾는 종목이 없다면? '${query.toUpperCase()}' 직접 추가하기</button>`;
@@ -416,7 +435,7 @@
                 
                 resultsContainer.style.display = 'block'; 
             } else { 
-                resultsContainer.innerHTML = `<div style="padding:15px; text-align:center; color:#666;">검색결과 없음<br><br><button type="button" onclick="addSymbolToSector('${query.toUpperCase()}')" style="padding:8px 16px; background:var(--toss-blue); color:#fff; border:none; border-radius:4px; cursor:pointer;">'${query.toUpperCase()}' 직접 추가하기</button></div>`; 
+                resultsContainer.innerHTML = `<div style="padding:15px; text-align:center; color:#666;">검색결과 없음<br><br><button type="button" onclick="addSymbolToSector('${query.toUpperCase()}')" style="padding:8px 16px; background:var(--toss-blue); color:#fff; border:none; border-radius:4px; cursor:pointer;">직접 티커(${query.toUpperCase()}) 추가</button></div>`; 
                 resultsContainer.style.display = 'block'; 
             } 
         });
@@ -425,13 +444,14 @@
         function removeTicker(ticker) { data[currentSector] = data[currentSector].filter(t => t !== ticker); saveToCloud(); renderContent(); }
         function openAddTickerModal() { document.getElementById('tickerSearchInput').value = ''; document.getElementById('searchResults').style.display = 'none'; document.getElementById('tickerModal').style.display = 'flex'; }
         
+        // [핵심] 섹터 관리 모달에서도 '순서 명부(sectorOrder)'를 기준으로 리스트를 그림
         function openSectorModal() { 
             const list = document.getElementById('sectorListAdmin'); 
             list.innerHTML = ''; 
-            const keys = Object.keys(data);
-            keys.forEach((s, index) => { 
+            
+            sectorOrder.forEach((s, index) => { 
                 const upBtn = index > 0 ? `<button type="button" class="move-btn" onclick="moveSector('${s}', -1)">▲</button>` : `<span style="width:24px;"></span>`;
-                const downBtn = index < keys.length - 1 ? `<button type="button" class="move-btn" onclick="moveSector('${s}', 1)">▼</button>` : `<span style="width:24px;"></span>`;
+                const downBtn = index < sectorOrder.length - 1 ? `<button type="button" class="move-btn" onclick="moveSector('${s}', 1)">▼</button>` : `<span style="width:24px;"></span>`;
 
                 list.innerHTML += `
                 <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #eee;">
@@ -448,6 +468,7 @@
             document.getElementById('sectorModal').style.display = 'flex'; 
         }
 
+        // [핵심] 섹터 이름 변경 로직 (데이터 구조와 순서 명부를 동시에 업데이트)
         window.renameSector = function(oldName) {
             const newName = prompt(`[${oldName}] 탭의 새로운 이름을 입력하세요:`, oldName);
             if (!newName || newName.trim() === '' || newName.trim() === oldName) return;
@@ -458,12 +479,19 @@
                 return;
             }
 
+            // 1. 데이터 객체 내부 키 변경
             const newData = {};
-            Object.keys(data).forEach(key => {
+            for(let key in data) {
                 if (key === oldName) newData[trimmedName] = data[key];
                 else newData[key] = data[key];
-            });
+            }
             data = newData;
+
+            // 2. 순서 명부(배열) 내부 텍스트 변경
+            const orderIdx = sectorOrder.indexOf(oldName);
+            if(orderIdx > -1) {
+                sectorOrder[orderIdx] = trimmedName;
+            }
 
             if (currentSector === oldName) currentSector = trimmedName;
 
@@ -473,28 +501,50 @@
             renderContent(); 
         };
 
+        // [핵심] 섹터 순서 이동 로직 (순서 명부 배열만 바꿈)
         function moveSector(sectorName, direction) {
-            const keys = Object.keys(data);
-            const idx = keys.indexOf(sectorName);
+            const idx = sectorOrder.indexOf(sectorName);
             if (idx < 0) return;
             const newIdx = idx + direction;
-            if (newIdx < 0 || newIdx >= keys.length) return;
+            if (newIdx < 0 || newIdx >= sectorOrder.length) return;
 
-            const temp = keys[idx];
-            keys[idx] = keys[newIdx];
-            keys[newIdx] = temp;
+            const temp = sectorOrder[idx];
+            sectorOrder[idx] = sectorOrder[newIdx];
+            sectorOrder[newIdx] = temp;
 
-            const newData = {};
-            keys.forEach(k => { newData[k] = data[k]; });
-            data = newData;
-            
             saveToCloud();
             openSectorModal(); 
             renderSectorNav(); 
         }
 
-        function addSector() { const name = document.getElementById('newSectorName').value.trim(); if (name && !data[name]) { data[name] = []; saveToCloud(); currentSector = name; renderSectorNav(); renderContent(); closeModal('sectorModal'); document.getElementById('newSectorName').value = ''; } }
-        function deleteSector(s) { if(confirm(`'${s}' 섹터를 삭제하시겠습니까?`)) { delete data[s]; currentSector = Object.keys(data)[0] || null; saveToCloud().then(() => { if(!currentSector) { resetCloudData(); } renderSectorNav(); openSectorModal(); renderContent(); }); } }
+        function addSector() { 
+            const name = document.getElementById('newSectorName').value.trim(); 
+            if (name && !data[name]) { 
+                data[name] = []; 
+                sectorOrder.push(name); // 새 섹터는 명부 맨 끝에 추가
+                saveToCloud(); 
+                currentSector = name; 
+                renderSectorNav(); 
+                renderContent(); 
+                closeModal('sectorModal'); 
+                document.getElementById('newSectorName').value = ''; 
+            } 
+        }
+        
+        function deleteSector(s) { 
+            if(confirm(`'${s}' 섹터를 삭제하시겠습니까?`)) { 
+                delete data[s]; 
+                sectorOrder = sectorOrder.filter(x => x !== s); // 명부에서 삭제
+                
+                currentSector = sectorOrder.length > 0 ? sectorOrder[0] : null; 
+                
+                saveToCloud().then(() => { 
+                    if(!currentSector) { resetCloudData(); } 
+                    else { renderSectorNav(); openSectorModal(); renderContent(); }
+                }); 
+            } 
+        }
+
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
         function loadNews() {
