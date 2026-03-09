@@ -118,3 +118,20 @@
         
         // 검색창 초기화 및 닫기
         document.getElementById('tickerSearchInput').value = '';
+        document.getElementById('searchResults').style.display = 'none';
+        closeModal('tickerModal');
+        
+        // 토스 스타일 알림 (선택사항)
+        console.log(`${name}(${symbol})이 ${currentSector}에 추가되었습니다.`);
+    }
+
+    // 모달을 열 때 검색창 초기화 기능 추가
+    function openAddTickerModal() {
+        document.getElementById('targetSectorHint').innerText = `${currentSector} 섹터에 추가합니다.`;
+        document.getElementById('tickerSearchInput').value = '';
+        document.getElementById('searchResults').style.display = 'none';
+        document.getElementById('tickerModal').style.display = 'flex';
+    }
+
+    /* ... 나머지 기존 함수(renderCharts, saveData 등) 유지 ... */
+</script>
