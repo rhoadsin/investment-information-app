@@ -13,7 +13,15 @@
             --toss-red: #f04452;
         }
 
-        body { font-family: 'Pretendard', sans-serif; background: var(--toss-bg); margin: 0; color: var(--toss-text-main); padding-bottom: 90px; }
+        /* 튕김 방지 핵심 코드: overscroll-behavior */
+        html, body { 
+            font-family: 'Pretendard', sans-serif; 
+            background: var(--toss-bg); 
+            margin: 0; 
+            color: var(--toss-text-main); 
+            padding-bottom: 90px;
+            overscroll-behavior: none; /* 모바일 쓸어넘기기 뒤로가기/새로고침 원천 차단 */
+        }
 
         .app-header { padding: 24px 24px 10px 24px; background: var(--toss-bg); }
         .app-header h1 { font-size: 24px; margin: 0 0 16px 0; font-weight: 700; display: flex; justify-content: space-between; align-items: center;}
@@ -29,7 +37,7 @@
         .chart-card { background: var(--toss-card); border-radius: 16px; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
         .chart-header { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; }
         .ticker-name { font-weight: 700; font-size: 15px; display: flex; align-items: center; }
-        .delete-btn { color: #ccc; cursor: pointer; border: none; background: none; font-size: 18px; }
+        .delete-btn { color: #ccc; cursor: pointer; border: none; background: none; font-size: 18px; padding: 4px; }
         .tv-widget { height: 250px; border-radius: 8px; overflow: hidden; background: #f9fafb; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #999;}
 
         .news-card { background: var(--toss-card); border-radius: 16px; padding: 0 20px; }
@@ -41,4 +49,266 @@
         .news-item:active { background-color: #f2f4f6; }
         .news-item:last-child { border-bottom: none; }
         .news-tag { font-size: 11px; color: var(--toss-blue); font-weight: 700; margin-bottom: 6px; display: inline-block;}
-        .news-tag-global { font-size: 10px; color: #fff
+        .news-tag-global { font-size: 10px; color: #fff; background-color: #202124; padding: 2px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle;}
+        .news-title { font-size: 15px; font-weight: 600; line-height: 1.4; color: var(--toss-text-main); margin: 0; }
+        .news-info { font-size: 12px; color: var(--toss-text-sub); margin-top: 8px; display: flex; justify-content: space-between; }
+        .news-link-icon { color: var(--toss-blue); font-size: 11px; font-weight: 600; }
+
+        .admin-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 1000; }
+        .fab { background: var(--toss-text-main); color: #fff; padding: 12px 20px; border-radius: 30px; font-size: 14px; font-weight: 600; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; }
+
+        .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; }
+        .modal-content { background: #fff; padding: 24px; border-radius: 20px; width: 85%; max-width: 400px; position: relative; }
+        .input-field { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid var(--toss-border); border-radius: 12px; box-sizing: border-box; font-size: 15px; outline: none;}
+        .input-field:focus { border-color: var(--toss-blue); }
+
+        .search-results { position: absolute; width: calc(100% - 48px); max-height: 250px; overflow-y: auto; background: #fff; border: 1px solid var(--toss-border); border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 9999; display: none; margin-top: 4px; }
+        .search-item { padding: 14px 16px; border-bottom: 1px solid #f2f4f6; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .search-item:hover { background: #f9fafb; }
+        .search-name { font-weight: 600; font-size: 15px; color: var(--toss-text-main); display: flex; align-items: center; }
+        .search-symbol { color: var(--toss-blue); font-weight: 700; font-size: 13px; }
+        .search-exch { font-size: 11px; color: #999; margin-left: 8px; }
+        .badge-etf { background-color: #e8f3ff; color: var(--toss-blue); padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; margin-left: 6px; }
+    </style>
+</head>
+<body>
+
+    <header class="app-header">
+        <h1>
+            내 손안의 투자
+            <button type="button" onclick="resetApp()" style="font-size:12px; padding:4px 8px; border:1px solid #ccc; background:#fff; border-radius:6px; color:#666; cursor:pointer;">데이터 초기화</button>
+        </h1>
+        <div id="refresh-time" style="font-size: 12px; color: var(--toss-text-sub); margin-bottom: 10px;"></div>
+    </header>
+
+    <nav class="sector-nav" id="sectorNav"></nav>
+
+    <main class="container">
+        <div class="section-title">
+            <span id="currentSectorName">관심 종목</span>
+            <button type="button" onclick="openAddTickerModal()" style="font-size: 14px; color: var(--toss-blue); border:none; background:none; font-weight:700; cursor:pointer;">+ 추가</button>
+        </div>
+        <div class="chart-grid" id="chartGrid"></div>
+
+        <div class="section-title" style="margin-bottom: 0;">주요 뉴스</div>
+        <div class="news-card">
+            <div class="news-filter-bar">
+                <select id="newsTimeframe" class="news-select" onchange="loadNews()">
+                    <option value="7d">최근 1주일 (기본)</option>
+                    <option value="30d">최근 1개월</option>
+                    <option value="1y">최근 1년</option>
+                </select>
+                <span style="font-size: 12px; font-weight: 600; color: var(--toss-blue); cursor: pointer;" onclick="loadNews()">🔄 실시간 연동</span>
+            </div>
+            <div id="newsContainer"></div>
+        </div>
+    </main>
+
+    <div class="admin-bar">
+        <button type="button" class="fab" onclick="openSectorModal()">📁 섹터 관리</button>
+    </div>
+
+    <div id="sectorModal" class="modal"><div class="modal-content"><h3 style="margin-top:0;">섹터 관리</h3><div id="sectorListAdmin"></div><hr style="border:0; height:1px; background:var(--toss-border); margin: 16px 0;"><input type="text" id="newSectorName" class="input-field" placeholder="새 섹터 이름 (예: 반도체)"><button type="button" onclick="addSector()" class="fab" style="width:100%; margin-top:10px; background:var(--toss-blue);">섹터 추가</button><button type="button" onclick="closeModal('sectorModal')" style="width:100%; border:none; background:none; margin-top:15px; font-weight:600; color:var(--toss-text-sub); cursor:pointer;">닫기</button></div></div>
+    <div id="tickerModal" class="modal"><div class="modal-content"><h3 style="margin-top:0;">종목/ETF 검색</h3><p id="targetSectorHint" style="font-size: 13px; color: var(--toss-blue); margin-bottom:15px;"></p><div style="position: relative;"><input type="text" id="tickerSearchInput" class="input-field" placeholder="기업명, ETF명, 티커 입력" autocomplete="off"><div id="searchResults" class="search-results"></div></div><button type="button" onclick="closeModal('tickerModal')" style="width:100%; border:none; background:none; margin-top:20px; font-weight:600; color:var(--toss-text-sub); cursor:pointer;">취소 및 닫기</button></div></div>
+
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script>
+        const defaultData = {
+            "생성형AI": ["MSFT", "GOOGL", "NVDA"],
+            "에이전틱AI": ["AMZN", "META", "PLTR"],
+            "피지컬AI": ["TSLA", "005930", "ASML"],
+            "시장지수(ETF)": ["SPY", "QQQ", "069500"]
+        };
+
+        const masterStockDB = [
+            {n: "삼성전자", s: "005930", e: "KOSPI", t: "STOCK"}, {n: "SK하이닉스", s: "000660", e: "KOSPI", t: "STOCK"},
+            {n: "현대차", s: "005380", e: "KOSPI", t: "STOCK"}, {n: "NAVER (네이버)", s: "035420", e: "KOSPI", t: "STOCK"},
+            {n: "Apple", s: "AAPL", e: "NASDAQ", t: "STOCK"}, {n: "Tesla", s: "TSLA", e: "NASDAQ", t: "STOCK"},
+            {n: "NVIDIA", s: "NVDA", e: "NASDAQ", t: "STOCK"}, {n: "Microsoft", s: "MSFT", e: "NASDAQ", t: "STOCK"},
+            {n: "Alphabet", s: "GOOGL", e: "NASDAQ", t: "STOCK"}, {n: "Meta", s: "META", e: "NASDAQ", t: "STOCK"},
+            {n: "SPY", s: "SPY", e: "NYSE", t: "ETF"}, {n: "QQQ", s: "QQQ", e: "NASDAQ", t: "ETF"},
+            {n: "KODEX 200", s: "069500", e: "KRX", t: "ETF"}
+        ];
+
+        let data = {};
+        let currentSector = null;
+        
+        try {
+            const localData = localStorage.getItem('gem_invest_data');
+            if (localData) { 
+                data = JSON.parse(localData); 
+                if (typeof data !== 'object' || Array.isArray(data) || Object.keys(data).length === 0) throw new Error("Invalid");
+            } else { throw new Error("No data"); }
+        } catch (e) { 
+            data = JSON.parse(JSON.stringify(defaultData)); 
+            localStorage.setItem('gem_invest_data', JSON.stringify(data));
+        }
+
+        currentSector = Object.keys(data)[0];
+
+        function resetApp() { if(confirm("초기 기본 설정으로 복구하시겠습니까?")) { localStorage.removeItem('gem_invest_data'); location.reload(); } }
+
+        function init() {
+            if (!currentSector) return;
+            renderSectorNav();
+            renderContent();
+        }
+
+        function updateTimeDisplay() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const elem = document.getElementById('refresh-time');
+            if(elem) elem.innerText = `최근 동기화: 오늘 ${timeStr}`;
+        }
+
+        function renderSectorNav() {
+            const nav = document.getElementById('sectorNav');
+            nav.innerHTML = '';
+            Object.keys(data).forEach(sector => {
+                const btn = document.createElement('div');
+                btn.className = `sector-tab ${sector === currentSector ? 'active' : ''}`;
+                btn.innerText = sector;
+                btn.onclick = () => { currentSector = sector; renderSectorNav(); renderContent(); };
+                nav.appendChild(btn);
+            });
+        }
+
+        function renderContent() {
+            if(!currentSector) return;
+            document.getElementById('currentSectorName').innerText = `${currentSector}`;
+            renderCharts();
+            loadNews();
+        }
+
+        function renderCharts() {
+            const grid = document.getElementById('chartGrid');
+            grid.innerHTML = '';
+            if(!data[currentSector] || data[currentSector].length === 0) { grid.innerHTML = '<div style="padding:20px; color:#999; grid-column: 1 / -1; text-align:center;">종목을 추가해보세요.</div>'; return; }
+
+            data[currentSector].forEach(ticker => {
+                const card = document.createElement('div');
+                card.className = 'chart-card';
+                const symbol = /^\d{6}$/.test(ticker) ? `KRX:${ticker}` : ticker;
+                const widgetId = `tv_${ticker}_${Math.random().toString(36).substr(2, 9)}`;
+                const stockInfo = masterStockDB.find(s => s.s === ticker);
+                const displayName = stockInfo ? stockInfo.n.split(' (')[0] : ticker;
+                const badgeHtml = stockInfo && stockInfo.t === 'ETF' ? `<span class="badge-etf">ETF</span>` : '';
+
+                card.innerHTML = `<div class="chart-header"><span class="ticker-name">${displayName} ${badgeHtml}</span><button type="button" class="delete-btn" onclick="removeTicker('${ticker}')">✕</button></div><div id="${widgetId}" class="tv-widget">차트 로딩중...</div>`;
+                grid.appendChild(card);
+                try { if (typeof TradingView !== 'undefined') { new TradingView.widget({ "autosize": true, "symbol": symbol, "interval": "D", "timezone": "Asia/Seoul", "theme": "light", "style": "2", "locale": "kr", "container_id": widgetId, "hide_top_toolbar": true, "hide_legend": true, "save_image": false }); } } catch(err) {}
+            });
+        }
+
+        document.getElementById('tickerSearchInput').addEventListener('input', function(e) { const query = e.target.value.trim().toLowerCase(); const resultsContainer = document.getElementById('searchResults'); if (query.length === 0) { resultsContainer.style.display = 'none'; return; } const matchedStocks = masterStockDB.filter(stock => stock.n.toLowerCase().includes(query) || stock.s.toLowerCase().includes(query) ); if (matchedStocks.length > 0) { resultsContainer.innerHTML = ''; matchedStocks.forEach(item => { const div = document.createElement('div'); div.className = 'search-item'; const badge = item.t === 'ETF' ? `<span class="badge-etf">ETF</span>` : ''; div.innerHTML = `<div><span class="search-name">${item.n} ${badge}</span><span class="search-exch">${item.e}</span></div><span class="search-symbol">${item.s}</span>`; div.onclick = () => { addSymbolToSector(item.s); }; resultsContainer.appendChild(div); }); resultsContainer.style.display = 'block'; } else { resultsContainer.innerHTML = '<div style="padding:15px; color:#999; font-size:14px; text-align:center;">검색 결과 없음<br><button type="button" onclick="addSymbolToSector(\''+query.toUpperCase()+'\')" style="padding:5px 10px; background:var(--toss-blue); color:#fff; border:none; border-radius:5px; margin-top:5px;">직접 추가</button></div>'; resultsContainer.style.display = 'block'; } });
+        
+        function addSymbolToSector(symbol) { if (!data[currentSector].includes(symbol)) { data[currentSector].push(symbol); saveData(); renderContent(); closeModal('tickerModal'); } else { alert('이미 추가된 종목입니다.'); } }
+        function removeTicker(ticker) { data[currentSector] = data[currentSector].filter(t => t !== ticker); saveData(); renderContent(); }
+        function openAddTickerModal() { document.getElementById('targetSectorHint').innerText = `[${currentSector}] 섹터에 추가`; document.getElementById('tickerSearchInput').value = ''; document.getElementById('searchResults').style.display = 'none'; document.getElementById('tickerModal').style.display = 'flex'; }
+        function openSectorModal() { const list = document.getElementById('sectorListAdmin'); list.innerHTML = ''; Object.keys(data).forEach(s => { list.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #eee;"><span style="font-weight:600;">${s}</span><button type="button" onclick="deleteSector('${s}')" style="color:var(--toss-red); border:none; background:none; font-weight:600; cursor:pointer;">삭제</button></div>`; }); document.getElementById('sectorModal').style.display = 'flex'; }
+        function addSector() { const name = document.getElementById('newSectorName').value.trim(); if (name && !data[name]) { data[name] = []; saveData(); currentSector = name; renderSectorNav(); renderContent(); closeModal('sectorModal'); document.getElementById('newSectorName').value = ''; } }
+        function deleteSector(s) { if(confirm(`'${s}' 섹터를 삭제하시겠습니까?`)) { delete data[s]; currentSector = Object.keys(data)[0] || null; saveData(); if(!currentSector) { data = JSON.parse(JSON.stringify(defaultData)); currentSector = Object.keys(data)[0]; saveData(); } renderSectorNav(); openSectorModal(); renderContent(); } }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; if(id === 'tickerModal') { document.getElementById('searchResults').style.display = 'none'; document.getElementById('tickerSearchInput').value = ''; } }
+        function saveData() { localStorage.setItem('gem_invest_data', JSON.stringify(data)); }
+
+        // --- 강력해진 실시간 뉴스 파싱 로직 (AllOrigins 우회 + XML 직접 해독) ---
+        async function loadNews() {
+            updateTimeDisplay();
+            const container = document.getElementById('newsContainer');
+            const timeframeValue = document.getElementById('newsTimeframe').value; 
+            
+            container.innerHTML = '<div style="text-align:center; padding:40px; color:#aaa; font-size:14px; line-height:1.6;">실제 구글 뉴스를 수집 중입니다...<br>(종목이 많을수록 2~3초가량 소요될 수 있습니다)</div>';
+            
+            const tickers = data[currentSector] || [];
+            const keywords = [currentSector]; 
+            tickers.forEach(t => {
+                const name = masterStockDB.find(s => s.s === t)?.n || t;
+                keywords.push(name.split(' (')[0]); 
+            });
+
+            let allNews = [];
+
+            // XML을 직접 파싱하여 횟수 제한이 적은 AllOrigins API 사용
+            const fetchPromises = keywords.map(async (kw, index) => {
+                const isEng = (index % 2 !== 0); 
+                const langParam = isEng ? 'hl=en-US&gl=US&ceid=US:en' : 'hl=ko&gl=KR&ceid=KR:ko';
+                const suffix = isEng ? ' stock' : ' 주식';
+                
+                const searchQuery = encodeURIComponent(`"${kw}"${suffix} when:${timeframeValue}`);
+                const rssUrl = `https://news.google.com/rss/search?q=${searchQuery}&${langParam}`;
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
+
+                try {
+                    const res = await fetch(proxyUrl);
+                    const json = await res.json();
+                    
+                    // XML 문자열을 HTML DOM으로 변환하여 <title>, <link> 등 추출
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(json.contents, "text/xml");
+                    const items = xmlDoc.querySelectorAll('item');
+
+                    let results = [];
+                    // 각 키워드당 최대 3개의 최신 뉴스 추출
+                    for(let i = 0; i < Math.min(items.length, 3); i++) {
+                        const item = items[i];
+                        results.push({
+                            title: item.querySelector('title')?.textContent.split(' - ')[0] || '제목 없음',
+                            link: item.querySelector('link')?.textContent || '#',
+                            source: item.querySelector('source')?.textContent || (isEng ? 'Global News' : '언론사'),
+                            time: item.querySelector('pubDate')?.textContent || new Date().toISOString(),
+                            type: isEng ? 'EN' : 'KR',
+                            keyword: kw
+                        });
+                    }
+                    return results;
+                } catch(e) { console.error("뉴스 로드 실패:", e); return []; }
+            });
+
+            const results = await Promise.all(fetchPromises);
+            results.forEach(res => allNews = allNews.concat(res));
+
+            // 데이터가 없을 때의 완벽한 비상 처리 (직접 구글 검색 링크 제공)
+            if (allNews.length === 0) {
+                let fallbackHtml = '<div style="padding: 10px 0; color: #666; font-size: 13px; text-align: center;">네트워크 문제로 뉴스 로딩이 지연되었습니다.<br>아래 버튼을 눌러 직접 확인하세요.</div>';
+                keywords.forEach((kw, i) => {
+                    const isEng = (i % 2 !== 0);
+                    const langParams = isEng ? '&hl=en&gl=US' : '&hl=ko&gl=KR';
+                    const fallbackUrl = `https://www.google.com/search?q=${encodeURIComponent(kw + ' 주식')}&tbm=nws${langParams}`;
+                    fallbackHtml += `<a href="${fallbackUrl}" target="_blank" style="display:block; padding:12px; margin-bottom:8px; background:#f2f4f6; border-radius:8px; text-decoration:none; color:var(--toss-blue); font-weight:600; text-align:center;">🔍 ${kw} 관련 뉴스 직접 검색</a>`;
+                });
+                container.innerHTML = fallbackHtml;
+                return;
+            }
+
+            // 최신 시간순 정렬
+            allNews.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+            let htmlString = '';
+            allNews.forEach(news => {
+                const dateObj = new Date(news.time);
+                const timeString = isNaN(dateObj) ? news.time : `${dateObj.getMonth()+1}/${dateObj.getDate()} ${dateObj.getHours()}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
+                const globalTag = news.type === 'EN' ? `<div class="news-tag-global">GLOBAL</div>` : '';
+
+                // 실제 기사 링크로 직접 연결!
+                htmlString += `
+                    <a href="${news.link}" target="_blank" class="news-item">
+                        <div style="display:flex; align-items:center;">
+                            <div class="news-tag">#${news.keyword}</div>
+                            ${globalTag}
+                        </div>
+                        <h4 class="news-title">${news.title}</h4>
+                        <div class="news-info">
+                            <span>${news.source} · ${timeString}</span>
+                            <span class="news-link-icon">기사 원문 ↗</span>
+                        </div>
+                    </a>
+                `;
+            });
+            
+            container.innerHTML = htmlString;
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
