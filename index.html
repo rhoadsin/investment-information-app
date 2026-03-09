@@ -57,9 +57,11 @@
         .search-name { font-weight: 600; font-size: 15px; color: var(--toss-text-main); }
         .search-symbol { color: var(--toss-blue); font-weight: 700; font-size: 13px; }
 
+        /* 뱃지 스타일 정의 */
         .badge-etf { background-color: #e8f3ff; color: var(--toss-blue); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; margin-left: 8px; }
         .badge-lme { background-color: #fce4e4; color: var(--toss-red); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; margin-left: 8px; }
-        .badge-ver { font-size: 12px; background: var(--toss-text-main); color: #fff; padding: 4px 8px; border-radius: 6px; font-weight: 600; }
+        .badge-gold { background-color: #fff4e6; color: #f5a623; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; margin-left: 8px; }
+        .badge-ver { font-size: 12px; background: #f5a623; color: #fff; padding: 4px 8px; border-radius: 6px; font-weight: 600; }
         
         .move-btn { border: 1px solid #e5e8eb; background: #fff; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; color: #666; transition: 0.2s;}
         .move-btn:hover { background: #f2f4f6; color: #111; }
@@ -69,7 +71,7 @@
 
 <div class="app-wrapper">
     <header class="app-header">
-        <h1>내 손안의 투자 <span class="badge-ver">PC v6.0 (원자재 복구)</span></h1>
+        <h1>내 손안의 투자 <span class="badge-ver">PC v7.0 (귀금속 추가)</span></h1>
         <div class="header-buttons">
             <button type="button" onclick="openSectorModal()" style="font-size:14px; padding:8px 16px; border:none; background:var(--toss-text-main); border-radius:6px; color:#fff; cursor:pointer; font-weight:600; margin-right: 8px;">📁 섹터 관리</button>
             <button type="button" onclick="resetApp()" style="font-size:14px; padding:8px 16px; border:1px solid #ccc; background:#fff; border-radius:6px; color:#666; cursor:pointer; font-weight:600;">데이터 초기화</button>
@@ -115,7 +117,7 @@
             <h3 style="margin-top:0; border-bottom: 2px solid #191f28; padding-bottom:10px;">종목/ETF 검색</h3>
             <p id="targetSectorHint" style="font-size: 14px; color: var(--toss-blue); font-weight:600;"></p>
             <div style="position: relative;">
-                <input type="text" id="tickerSearchInput" class="input-field" placeholder="기업명, ETF명, 원자재 입력" autocomplete="off">
+                <input type="text" id="tickerSearchInput" class="input-field" placeholder="기업명, ETF명, 원자재, 금/은 입력" autocomplete="off">
                 <div id="searchResults" class="search-results"></div>
             </div>
             <button type="button" onclick="closeModal('tickerModal')" style="width:100%; border:none; background:#f2f4f6; padding:12px; margin-top:20px; border-radius:6px; font-weight:600; color:var(--toss-text-sub); cursor:pointer;">닫기</button>
@@ -124,19 +126,25 @@
 
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js" async></script>
     <script>
-        // 새로운 데이터베이스 키 (오류 났던 LME 심볼들을 강제로 씻어내기 위함)
-        const STORAGE_KEY = 'gem_pc_final_v6'; 
+        const STORAGE_KEY = 'gem_pc_final_v7'; 
 
-        // [핵심 변경] LME 심볼을 트레이딩뷰 위젯이 100% 지원하는 글로벌 원자재 CFD(CAPITALCOM)로 교체
+        // 1. 기본 데이터에 귀금속 섹션 추가
         const defaultData = {
             "생성형AI": ["MSFT", "GOOGL", "NVDA"],
             "에이전틱AI": ["AMZN", "META", "PLTR"],
             "피지컬AI": ["TSLA", "005930", "ASML"],
             "시장지수(ETF)": ["SPY", "QQQ", "069500"],
-            "비철금속(원자재)": ["CAPITALCOM:COPPER", "CAPITALCOM:ALUMINUM", "CAPITALCOM:ZINC", "CAPITALCOM:NICKEL"]
+            "귀금속(금/은)": ["OANDA:XAUUSD", "OANDA:XAGUSD", "OANDA:XPTUSD"],
+            "비철금속(LME)": ["CAPITALCOM:COPPER", "CAPITALCOM:ALUMINUM", "CAPITALCOM:ZINC", "CAPITALCOM:NICKEL"]
         };
 
+        // 2. 마스터 DB (귀금속 OANDA 티커 추가)
         const masterStockDB = [
+            // 귀금속
+            {n: "금 (Gold)", s: "OANDA:XAUUSD", e: "귀금속 (OANDA)", t: "PRECIOUS"},
+            {n: "은 (Silver)", s: "OANDA:XAGUSD", e: "귀금속 (OANDA)", t: "PRECIOUS"},
+            {n: "백금 (Platinum)", s: "OANDA:XPTUSD", e: "귀금속 (OANDA)", t: "PRECIOUS"},
+            
             // 원자재(LME 추종 글로벌 CFD)
             {n: "구리 (Copper)", s: "CAPITALCOM:COPPER", e: "원자재 CFD", t: "LME"},
             {n: "알루미늄 (Aluminum)", s: "CAPITALCOM:ALUMINUM", e: "원자재 CFD", t: "LME"},
@@ -152,17 +160,12 @@
             {n: "Palantir", s: "PLTR", e: "NYSE", t: "STOCK"}, {n: "ASML", s: "ASML", e: "NASDAQ", t: "STOCK"},
             {n: "Amazon", s: "AMZN", e: "NASDAQ", t: "STOCK"}, {n: "SPY", s: "SPY", e: "NYSE", t: "ETF"}, {n: "QQQ", s: "QQQ", e: "NASDAQ", t: "ETF"},
             
-            // KODEX
+            // ETF 시리즈 (KODEX, TIGER, ACE)
             {n: "KODEX 200", s: "069500", e: "KRX", t: "ETF"}, {n: "KODEX 레버리지", s: "122630", e: "KRX", t: "ETF"},
-
-            // TIGER 시리즈
             {n: "TIGER 미국나스닥100", s: "133690", e: "KRX", t: "ETF"}, {n: "TIGER 미국S&P500", s: "360200", e: "KRX", t: "ETF"},
             {n: "TIGER 차이나전기차SOLACTIVE", s: "371460", e: "KRX", t: "ETF"}, {n: "TIGER 2차전지테마", s: "305540", e: "KRX", t: "ETF"},
             {n: "TIGER 미국배당다우존스", s: "458730", e: "KRX", t: "ETF"}, {n: "TIGER 미국필라델피아반도체나스닥", s: "381180", e: "KRX", t: "ETF"},
             {n: "TIGER 미국테크TOP10 INDXX", s: "381170", e: "KRX", t: "ETF"}, {n: "TIGER 글로벌AI액티브", s: "466940", e: "KRX", t: "ETF"},
-            {n: "TIGER 인도니프티50", s: "453870", e: "KRX", t: "ETF"}, {n: "TIGER 일본니케이225", s: "241180", e: "KRX", t: "ETF"},
-            
-            // ACE 시리즈
             {n: "ACE 미국나스닥100", s: "367380", e: "KRX", t: "ETF"}, {n: "ACE 미국S&P500", s: "360200", e: "KRX", t: "ETF"},
             {n: "ACE 미국배당다우존스", s: "402970", e: "KRX", t: "ETF"}, {n: "ACE 글로벌반도체TOP4 Plus", s: "446770", e: "KRX", t: "ETF"},
             {n: "ACE 미국빅테크TOP7 Plus", s: "465580", e: "KRX", t: "ETF"}, {n: "ACE 테슬라밸류체인액티브", s: "462010", e: "KRX", t: "ETF"}
@@ -190,7 +193,7 @@
         }
 
         function resetApp() { 
-            if(confirm("모든 데이터를 초기화하시겠습니까? (원자재 탭 복원됨)")) { 
+            if(confirm("모든 데이터를 초기화하시겠습니까? (귀금속 탭이 복원됩니다.)")) { 
                 try { localStorage.removeItem(STORAGE_KEY); } catch(e){}
                 location.reload(); 
             } 
@@ -235,16 +238,18 @@
                 card.className = 'chart-card';
                 
                 let symbol = ticker;
-                if (/^\d{6}$/.test(ticker)) symbol = `KRX:${ticker}`; // 한국 주식 처리
+                if (/^\d{6}$/.test(ticker)) symbol = `KRX:${ticker}`; 
                 
                 const widgetId = `tv_${ticker.replace(':','_')}_${Math.random().toString(36).substr(2, 9)}`;
                 const stockInfo = masterStockDB.find(s => s.s === ticker);
                 const displayName = stockInfo ? stockInfo.n.split(' (')[0] : ticker;
                 
+                // 뱃지 적용 로직 추가 (PRECIOUS)
                 let badgeHtml = '';
                 if (stockInfo) {
                     if (stockInfo.t === 'ETF') badgeHtml = `<span class="badge-etf">ETF</span>`;
                     else if (stockInfo.t === 'LME') badgeHtml = `<span class="badge-lme">원자재</span>`;
+                    else if (stockInfo.t === 'PRECIOUS') badgeHtml = `<span class="badge-gold">귀금속</span>`;
                 }
 
                 card.innerHTML = `<div class="chart-header"><span class="ticker-name">${displayName} ${badgeHtml}</span><button type="button" class="delete-btn" onclick="removeTicker('${ticker}')">✕ 삭제</button></div><div id="${widgetId}" class="tv-widget">차트 렌더링 중...</div>`;
@@ -260,7 +265,6 @@
             });
         }
 
-        // 검색
         document.getElementById('tickerSearchInput').addEventListener('input', function(e) { 
             const query = e.target.value.trim().toLowerCase(); const resultsContainer = document.getElementById('searchResults'); 
             if (query.length === 0) { resultsContainer.style.display = 'none'; return; } 
@@ -272,6 +276,8 @@
                     let badge = '';
                     if(item.t === 'ETF') badge = `<span class="badge-etf">ETF</span>`;
                     else if(item.t === 'LME') badge = `<span class="badge-lme">원자재</span>`;
+                    else if(item.t === 'PRECIOUS') badge = `<span class="badge-gold">귀금속</span>`;
+
                     div.innerHTML = `<div><span class="search-name">${item.n} ${badge}</span><br><span style="font-size:11px;color:#999;">${item.e}</span></div><span class="search-symbol">${item.s}</span>`; 
                     div.onclick = () => { addSymbolToSector(item.s); }; 
                     resultsContainer.appendChild(div); 
@@ -287,7 +293,6 @@
         function removeTicker(ticker) { data[currentSector] = data[currentSector].filter(t => t !== ticker); safeSaveData(); renderContent(); }
         function openAddTickerModal() { document.getElementById('targetSectorHint').innerText = `[${currentSector}] 섹터에 추가합니다.`; document.getElementById('tickerSearchInput').value = ''; document.getElementById('searchResults').style.display = 'none'; document.getElementById('tickerModal').style.display = 'flex'; }
         
-        // 섹터 관리 모달 (순서 이동 기능 포함)
         function openSectorModal() { 
             const list = document.getElementById('sectorListAdmin'); 
             list.innerHTML = ''; 
@@ -332,7 +337,7 @@
         function deleteSector(s) { if(confirm(`'${s}' 섹터를 삭제하시겠습니까?`)) { delete data[s]; currentSector = Object.keys(data)[0] || null; safeSaveData(); if(!currentSector) { ensureDataSafe(); } renderSectorNav(); openSectorModal(); renderContent(); } }
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-        // 뉴스 로딩 (원자재 키워드 최적화)
+        // 뉴스 로딩 (귀금속 키워드 최적화)
         function loadNews() {
             const container = document.getElementById('newsContainer');
             const timeframeValue = document.getElementById('newsTimeframe').value; 
@@ -340,11 +345,15 @@
             
             const tickers = data[currentSector] || [];
             const keywords = [currentSector]; 
+            
             tickers.forEach(t => {
                 const stockInfo = masterStockDB.find(s => s.s === t);
                 let cleanName = stockInfo ? stockInfo.n.split(' (')[0] : t;
-                // 원자재(LME)인 경우 뉴스 검색어를 '구리 가격' 등으로 자동 변환하여 검색 정확도 높임
-                if (stockInfo && stockInfo.t === 'LME') cleanName = cleanName + " 가격"; 
+                
+                // 원자재(LME)나 귀금속(PRECIOUS)인 경우, '주식' 키워드 대신 '가격' 키워드를 붙이도록 이름 치환
+                if (stockInfo && (stockInfo.t === 'LME' || stockInfo.t === 'PRECIOUS')) {
+                    cleanName = cleanName + " 가격"; 
+                }
                 keywords.push(cleanName); 
             });
 
@@ -352,7 +361,8 @@
             keywords.forEach((kw, i) => {
                 const isEng = (i % 2 !== 0); 
                 const langParams = isEng ? '&hl=en&gl=US' : '&hl=ko&gl=KR';
-                // 원자재 가격 키워드가 포함된 경우 '주식' 단어를 붙이지 않음
+                
+                // "가격" 이라는 단어가 들어있으면 주식(stock) 키워드를 강제로 붙이지 않음 (정확도 향상)
                 const suffix = kw.includes("가격") ? '' : (isEng ? ' stock' : ' 주식');
                 const displayType = isEng ? 'GLOBAL 🇺🇸' : 'KOREA 🇰🇷';
                 
