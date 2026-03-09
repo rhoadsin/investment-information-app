@@ -13,14 +13,10 @@
             --toss-red: #f04452;
         }
 
-        /* 튕김 방지 핵심 코드: overscroll-behavior */
+        /* 튕김 방지 */
         html, body { 
-            font-family: 'Pretendard', sans-serif; 
-            background: var(--toss-bg); 
-            margin: 0; 
-            color: var(--toss-text-main); 
-            padding-bottom: 90px;
-            overscroll-behavior: none; /* 모바일 쓸어넘기기 뒤로가기/새로고침 원천 차단 */
+            font-family: 'Pretendard', sans-serif; background: var(--toss-bg); margin: 0; color: var(--toss-text-main); padding-bottom: 90px;
+            overscroll-behavior: none; 
         }
 
         .app-header { padding: 24px 24px 10px 24px; background: var(--toss-bg); }
@@ -53,6 +49,9 @@
         .news-title { font-size: 15px; font-weight: 600; line-height: 1.4; color: var(--toss-text-main); margin: 0; }
         .news-info { font-size: 12px; color: var(--toss-text-sub); margin-top: 8px; display: flex; justify-content: space-between; }
         .news-link-icon { color: var(--toss-blue); font-size: 11px; font-weight: 600; }
+
+        .fallback-btn { display:block; padding:16px; margin-bottom:12px; background:#f9fafb; border: 1px solid var(--toss-border); border-radius:12px; text-decoration:none; color:var(--toss-text-main); transition: 0.2s; }
+        .fallback-btn:hover { background: #f2f4f6; }
 
         .admin-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 1000; }
         .fab { background: var(--toss-text-main); color: #fff; padding: 12px 20px; border-radius: 30px; font-size: 14px; font-weight: 600; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; }
@@ -130,26 +129,39 @@
             {n: "KODEX 200", s: "069500", e: "KRX", t: "ETF"}
         ];
 
+        // --- 1. 철벽 방어 데이터 복구 로직 (하얀 화면 원천 차단) ---
         let data = {};
         let currentSector = null;
         
-        try {
-            const localData = localStorage.getItem('gem_invest_data');
-            if (localData) { 
-                data = JSON.parse(localData); 
-                if (typeof data !== 'object' || Array.isArray(data) || Object.keys(data).length === 0) throw new Error("Invalid");
-            } else { throw new Error("No data"); }
-        } catch (e) { 
-            data = JSON.parse(JSON.stringify(defaultData)); 
-            localStorage.setItem('gem_invest_data', JSON.stringify(data));
+        function ensureDataSafe() {
+            try {
+                const localData = localStorage.getItem('gem_invest_data');
+                if (localData) { 
+                    data = JSON.parse(localData); 
+                    if (typeof data !== 'object' || Array.isArray(data) || Object.keys(data).length === 0) { 
+                        throw new Error("데이터 구조 깨짐");
+                    }
+                } else { 
+                    throw new Error("데이터 없음");
+                }
+            } catch (e) { 
+                data = JSON.parse(JSON.stringify(defaultData)); 
+                localStorage.setItem('gem_invest_data', JSON.stringify(data));
+            }
+            currentSector = Object.keys(data)[0];
         }
 
-        currentSector = Object.keys(data)[0];
+        ensureDataSafe();
 
-        function resetApp() { if(confirm("초기 기본 설정으로 복구하시겠습니까?")) { localStorage.removeItem('gem_invest_data'); location.reload(); } }
+        function resetApp() { 
+            if(confirm("모든 데이터를 지우고 초기 설정으로 복구하시겠습니까?")) { 
+                localStorage.removeItem('gem_invest_data'); 
+                location.reload(); 
+            } 
+        }
 
         function init() {
-            if (!currentSector) return;
+            if (!currentSector) ensureDataSafe(); // 이중 방어
             renderSectorNav();
             renderContent();
         }
@@ -200,115 +212,9 @@
             });
         }
 
+        // 검색 및 기능 로직
         document.getElementById('tickerSearchInput').addEventListener('input', function(e) { const query = e.target.value.trim().toLowerCase(); const resultsContainer = document.getElementById('searchResults'); if (query.length === 0) { resultsContainer.style.display = 'none'; return; } const matchedStocks = masterStockDB.filter(stock => stock.n.toLowerCase().includes(query) || stock.s.toLowerCase().includes(query) ); if (matchedStocks.length > 0) { resultsContainer.innerHTML = ''; matchedStocks.forEach(item => { const div = document.createElement('div'); div.className = 'search-item'; const badge = item.t === 'ETF' ? `<span class="badge-etf">ETF</span>` : ''; div.innerHTML = `<div><span class="search-name">${item.n} ${badge}</span><span class="search-exch">${item.e}</span></div><span class="search-symbol">${item.s}</span>`; div.onclick = () => { addSymbolToSector(item.s); }; resultsContainer.appendChild(div); }); resultsContainer.style.display = 'block'; } else { resultsContainer.innerHTML = '<div style="padding:15px; color:#999; font-size:14px; text-align:center;">검색 결과 없음<br><button type="button" onclick="addSymbolToSector(\''+query.toUpperCase()+'\')" style="padding:5px 10px; background:var(--toss-blue); color:#fff; border:none; border-radius:5px; margin-top:5px;">직접 추가</button></div>'; resultsContainer.style.display = 'block'; } });
-        
         function addSymbolToSector(symbol) { if (!data[currentSector].includes(symbol)) { data[currentSector].push(symbol); saveData(); renderContent(); closeModal('tickerModal'); } else { alert('이미 추가된 종목입니다.'); } }
         function removeTicker(ticker) { data[currentSector] = data[currentSector].filter(t => t !== ticker); saveData(); renderContent(); }
         function openAddTickerModal() { document.getElementById('targetSectorHint').innerText = `[${currentSector}] 섹터에 추가`; document.getElementById('tickerSearchInput').value = ''; document.getElementById('searchResults').style.display = 'none'; document.getElementById('tickerModal').style.display = 'flex'; }
-        function openSectorModal() { const list = document.getElementById('sectorListAdmin'); list.innerHTML = ''; Object.keys(data).forEach(s => { list.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #eee;"><span style="font-weight:600;">${s}</span><button type="button" onclick="deleteSector('${s}')" style="color:var(--toss-red); border:none; background:none; font-weight:600; cursor:pointer;">삭제</button></div>`; }); document.getElementById('sectorModal').style.display = 'flex'; }
-        function addSector() { const name = document.getElementById('newSectorName').value.trim(); if (name && !data[name]) { data[name] = []; saveData(); currentSector = name; renderSectorNav(); renderContent(); closeModal('sectorModal'); document.getElementById('newSectorName').value = ''; } }
-        function deleteSector(s) { if(confirm(`'${s}' 섹터를 삭제하시겠습니까?`)) { delete data[s]; currentSector = Object.keys(data)[0] || null; saveData(); if(!currentSector) { data = JSON.parse(JSON.stringify(defaultData)); currentSector = Object.keys(data)[0]; saveData(); } renderSectorNav(); openSectorModal(); renderContent(); } }
-        function closeModal(id) { document.getElementById(id).style.display = 'none'; if(id === 'tickerModal') { document.getElementById('searchResults').style.display = 'none'; document.getElementById('tickerSearchInput').value = ''; } }
-        function saveData() { localStorage.setItem('gem_invest_data', JSON.stringify(data)); }
-
-        // --- 강력해진 실시간 뉴스 파싱 로직 (AllOrigins 우회 + XML 직접 해독) ---
-        async function loadNews() {
-            updateTimeDisplay();
-            const container = document.getElementById('newsContainer');
-            const timeframeValue = document.getElementById('newsTimeframe').value; 
-            
-            container.innerHTML = '<div style="text-align:center; padding:40px; color:#aaa; font-size:14px; line-height:1.6;">실제 구글 뉴스를 수집 중입니다...<br>(종목이 많을수록 2~3초가량 소요될 수 있습니다)</div>';
-            
-            const tickers = data[currentSector] || [];
-            const keywords = [currentSector]; 
-            tickers.forEach(t => {
-                const name = masterStockDB.find(s => s.s === t)?.n || t;
-                keywords.push(name.split(' (')[0]); 
-            });
-
-            let allNews = [];
-
-            // XML을 직접 파싱하여 횟수 제한이 적은 AllOrigins API 사용
-            const fetchPromises = keywords.map(async (kw, index) => {
-                const isEng = (index % 2 !== 0); 
-                const langParam = isEng ? 'hl=en-US&gl=US&ceid=US:en' : 'hl=ko&gl=KR&ceid=KR:ko';
-                const suffix = isEng ? ' stock' : ' 주식';
-                
-                const searchQuery = encodeURIComponent(`"${kw}"${suffix} when:${timeframeValue}`);
-                const rssUrl = `https://news.google.com/rss/search?q=${searchQuery}&${langParam}`;
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
-
-                try {
-                    const res = await fetch(proxyUrl);
-                    const json = await res.json();
-                    
-                    // XML 문자열을 HTML DOM으로 변환하여 <title>, <link> 등 추출
-                    const parser = new DOMParser();
-                    const xmlDoc = parser.parseFromString(json.contents, "text/xml");
-                    const items = xmlDoc.querySelectorAll('item');
-
-                    let results = [];
-                    // 각 키워드당 최대 3개의 최신 뉴스 추출
-                    for(let i = 0; i < Math.min(items.length, 3); i++) {
-                        const item = items[i];
-                        results.push({
-                            title: item.querySelector('title')?.textContent.split(' - ')[0] || '제목 없음',
-                            link: item.querySelector('link')?.textContent || '#',
-                            source: item.querySelector('source')?.textContent || (isEng ? 'Global News' : '언론사'),
-                            time: item.querySelector('pubDate')?.textContent || new Date().toISOString(),
-                            type: isEng ? 'EN' : 'KR',
-                            keyword: kw
-                        });
-                    }
-                    return results;
-                } catch(e) { console.error("뉴스 로드 실패:", e); return []; }
-            });
-
-            const results = await Promise.all(fetchPromises);
-            results.forEach(res => allNews = allNews.concat(res));
-
-            // 데이터가 없을 때의 완벽한 비상 처리 (직접 구글 검색 링크 제공)
-            if (allNews.length === 0) {
-                let fallbackHtml = '<div style="padding: 10px 0; color: #666; font-size: 13px; text-align: center;">네트워크 문제로 뉴스 로딩이 지연되었습니다.<br>아래 버튼을 눌러 직접 확인하세요.</div>';
-                keywords.forEach((kw, i) => {
-                    const isEng = (i % 2 !== 0);
-                    const langParams = isEng ? '&hl=en&gl=US' : '&hl=ko&gl=KR';
-                    const fallbackUrl = `https://www.google.com/search?q=${encodeURIComponent(kw + ' 주식')}&tbm=nws${langParams}`;
-                    fallbackHtml += `<a href="${fallbackUrl}" target="_blank" style="display:block; padding:12px; margin-bottom:8px; background:#f2f4f6; border-radius:8px; text-decoration:none; color:var(--toss-blue); font-weight:600; text-align:center;">🔍 ${kw} 관련 뉴스 직접 검색</a>`;
-                });
-                container.innerHTML = fallbackHtml;
-                return;
-            }
-
-            // 최신 시간순 정렬
-            allNews.sort((a, b) => new Date(b.time) - new Date(a.time));
-
-            let htmlString = '';
-            allNews.forEach(news => {
-                const dateObj = new Date(news.time);
-                const timeString = isNaN(dateObj) ? news.time : `${dateObj.getMonth()+1}/${dateObj.getDate()} ${dateObj.getHours()}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
-                const globalTag = news.type === 'EN' ? `<div class="news-tag-global">GLOBAL</div>` : '';
-
-                // 실제 기사 링크로 직접 연결!
-                htmlString += `
-                    <a href="${news.link}" target="_blank" class="news-item">
-                        <div style="display:flex; align-items:center;">
-                            <div class="news-tag">#${news.keyword}</div>
-                            ${globalTag}
-                        </div>
-                        <h4 class="news-title">${news.title}</h4>
-                        <div class="news-info">
-                            <span>${news.source} · ${timeString}</span>
-                            <span class="news-link-icon">기사 원문 ↗</span>
-                        </div>
-                    </a>
-                `;
-            });
-            
-            container.innerHTML = htmlString;
-        }
-
-        window.onload = init;
-    </script>
-</body>
-</html>
+        function openSectorModal() { const list = document.getElementById('sectorListAdmin'); list.innerHTML = ''; Object.keys(data).forEach(s => { list
