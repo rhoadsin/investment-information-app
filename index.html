@@ -35,11 +35,10 @@
         .cloud-status.syncing { color: #f5a623; background: #fff4e6; }
         .cloud-status.error { color: var(--toss-red); background: #fce4e4; }
         
+        /* [핵심 보완] 가로 스크롤을 삭제하고, 영역을 넘어가면 자동으로 다음 줄로 넘어가는 flex-wrap 적용 */
         .sector-nav { 
-            display: flex; gap: 8px; overflow-x: auto; padding: 0 20px 15px 20px; border-bottom: 1px solid #e5e8eb;
-            scrollbar-width: none; -ms-overflow-style: none; 
+            display: flex; flex-wrap: wrap; gap: 8px; padding: 0 20px 15px 20px; border-bottom: 1px solid #e5e8eb;
         }
-        .sector-nav::-webkit-scrollbar { display: none; }
         
         .sector-tab { 
             flex: 0 0 auto; white-space: nowrap; padding: 10px 20px; background: #fff; border-radius: 20px; 
@@ -112,7 +111,7 @@
 
 <div class="app-wrapper">
     <header class="app-header">
-        <h1>내 손안의 투자 <span class="badge-ver">PC/Mobile v12.5 (에러 방어)</span></h1>
+        <h1>내 손안의 투자 <span class="badge-ver">PC/Mobile v12.6 (섹터 표시 보완)</span></h1>
         
         <div class="header-buttons">
             <div id="cloudStatus" class="cloud-status">☁️ 연결 대기중</div>
@@ -186,7 +185,6 @@
         };
         // ==============================================================
 
-        // [핵심 에러 방어 로직] Firebase가 틀려도 화면이 하얗게 멈추지 않도록 Try-Catch로 감쌈
         let db = null;
         try {
             if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "여기에_API_KEY_입력") {
@@ -233,7 +231,6 @@
             indicator.innerHTML = text;
         }
 
-        // 로컬 데이터 안전 복구 함수 (클라우드 실패 시 대비)
         function ensureDataSafe() {
             try {
                 const localData = localStorage.getItem(STORAGE_KEY);
@@ -258,7 +255,6 @@
         }
 
         async function fetchCloudData() {
-            // DB가 연결 안 되었으면 로컬 모드로 화면 먼저 띄움 (블랭크 방지)
             if (!db) {
                 setCloudStatus('error', '⚠️ 로컬 모드 (키값 오류)');
                 ensureDataSafe();
@@ -300,7 +296,7 @@
 
         async function saveToCloud() {
             if (!db) {
-                safeSaveData(); // 클라우드 없으면 로컬에라도 저장
+                safeSaveData(); 
                 return;
             }
             setCloudStatus('syncing', '☁️ 저장 중...');
@@ -646,7 +642,7 @@
     
     <script>
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js').catch(err => console.log('Service Worker 등록 실패 (PWA 전용)', err));
+            navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW 등록 실패', err));
         }
     </script>
 </body>
